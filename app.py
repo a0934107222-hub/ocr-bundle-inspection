@@ -31,20 +31,24 @@ def load_parts_list():
 
 
 def preprocess_image(image: Image.Image) -> Image.Image:
-    """Enhance image for better OCR accuracy on printed labels."""
-    # Keep RGB — don't convert to grayscale, let Tesseract handle it
+    """Resize image to a safe size for Tesseract on low-memory servers."""
+    image = image.convert("RGB")
     w, h = image.size
-    # Scale up so text is large enough for Tesseract
-    if w < 1600:
-        scale = 1600 / w
-        image = image.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+    # Cap at 1000px wide — enough for OCR, safe for 512MB RAM
+    if w > 1000:
+        scale = 1000 / w
+        image = image.resize((1000, int(h * scale)), Image.LANCZOS)
+    elif w < 600:
+        scale = 600 / w
+        image = image.resize((600, int(h * scale)), Image.LANCZOS)
     return image
 
 
 def extract_text(image: Image.Image) -> str:
     """Run Tesseract OCR and return cleaned text."""
     processed = preprocess_image(image)
-    raw = pytesseract.image_to_string(processed)
+    # PSM 11 = sparse text, finds text anywhere in the image
+    raw = pytesseract.image_to_string(processed, config="--psm 11")
     lines = [re.sub(r"\s+", " ", ln).strip() for ln in raw.splitlines()]
     return "\n".join(ln for ln in lines if ln)
 
