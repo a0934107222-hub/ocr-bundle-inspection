@@ -238,6 +238,34 @@
   function lev(a,b){const m=a.length,n=b.length,dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);return dp[m][n];}
   function fuzzyMatch(det,parts){if(parts.includes(det))return{match:det,exact:true};let best=null,dist=3;for(const p of parts){const d=lev(det,p);if(d<dist){dist=d;best=p;}}return best?{match:best,exact:false,dist}:null;}
 
+  // ── Preprocess crop for OCR ───────────────────────────────────────────────
+  // Grayscale + scale-up + threshold → clean black-on-white for Tesseract
+  function preprocessCrop(src) {
+    const SCALE = Math.max(1, 900 / src.width);
+    const w = Math.round(src.width * SCALE);
+    const h = Math.round(src.height * SCALE);
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const cx = c.getContext("2d");
+    cx.drawImage(src, 0, 0, w, h);
+    const id = cx.getImageData(0, 0, w, h);
+    const d  = id.data;
+    // Find average brightness to set dynamic threshold
+    let total = 0;
+    for (let i = 0; i < d.length; i += 4)
+      total += 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+    const avg = total / (d.length / 4);
+    // Threshold = midpoint between darkest likely text and average background
+    const threshold = avg * 0.65;
+    for (let i = 0; i < d.length; i += 4) {
+      const g = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+      const v = g < threshold ? 0 : 255;
+      d[i] = d[i+1] = d[i+2] = v; d[i+3] = 255;
+    }
+    cx.putImageData(id, 0, 0);
+    return c;
+  }
+
   // ── Scan ──────────────────────────────────────────────────────────────────
   async function scanImage() {
     if (!origImg || !worker) return;
@@ -257,15 +285,31 @@
     document.getElementById("fuzzyNote").style.display = "none";
     document.getElementById("btnScan").disabled = true;
 
+    const processed = preprocessCrop(crop);
+
     try {
-      const {data} = await worker.recognize(crop);
-      const raw    = data.text.trim();
-      const tokens = raw.toUpperCase().match(/[A-Z0-9][A-Z0-9_\-\.]{2,}/g) || [];
-      const best   = tokens.length ? tokens.reduce((a,b)=>b.length>a.length?b:a) : raw.toUpperCase().trim();
+      // Try PSM 6 (block), 7 (single line), 11 (sparse) — pick longest result
+      let bestRaw = "", bestTokens = [];
+      for (const psm of ["6","7","11"]) {
+        await worker.setParameters({ tessedit_pageseg_mode: psm });
+        const {data} = await worker.recognize(processed);
+        const raw = data.text.trim();
+        const tokens = raw.toUpperCase().match(/[A-Z0-9][A-Z0-9_\-\.]{2,}/g) || [];
+        // Prefer result with more/longer tokens
+        const score = tokens.reduce((s,t) => s + t.length, 0);
+        const bestScore = bestTokens.reduce((s,t) => s + t.length, 0);
+        if (score > bestScore) { bestRaw = raw; bestTokens = tokens; }
+      }
+      // Restore default
+      await worker.setParameters({ tessedit_pageseg_mode: "6" });
+
+      const best = bestTokens.length
+        ? bestTokens.reduce((a,b) => b.length > a.length ? b : a)
+        : bestRaw.toUpperCase().trim();
 
       document.getElementById("progFill").style.width = "100%";
-      document.getElementById("rawText").textContent  = raw || "(nothing detected)";
-      document.getElementById("detected").textContent = best || "(nothing detected)";
+      document.getElementById("rawText").textContent  = bestRaw || "(nothing detected)";
+      document.getElementById("detected").textContent = best    || "(nothing detected)";
 
       const match = fuzzyMatch(best, cachedParts);
       if (match) {
