@@ -37,7 +37,7 @@ def load_parts_list():
 
 def gemini_read_label(image: Image.Image) -> str:
     """Use Gemini Vision to read text from a label image."""
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.0-flash")
 
     # Resize to max 1000px to reduce token usage
     w, h = image.size
