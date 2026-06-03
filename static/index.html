@@ -186,43 +186,91 @@
     drawRotated();
   }
 
-  // ── Preprocessing: adaptive threshold ────────────────────────────────────
-  // Compares each pixel to blurred (local average).
-  // Pixels much darker than surroundings = text → black. Everything else → white.
+  // ── Step 1: Find the white label bounding box ────────────────────────────
+  // The label is the large bright-white region. Metal surface is darker gray.
+  function findLabelRegion(srcCanvas) {
+    // Work at 10% scale for speed
+    const SCALE = 0.1;
+    const tw = Math.max(1, Math.round(srcCanvas.width * SCALE));
+    const th = Math.max(1, Math.round(srcCanvas.height * SCALE));
+    const tc = document.createElement("canvas");
+    tc.width = tw; tc.height = th;
+    const tctx = tc.getContext("2d");
+    tctx.drawImage(srcCanvas, 0, 0, tw, th);
+    const td = tctx.getImageData(0, 0, tw, th).data;
+
+    // Find average brightness to set a dynamic threshold
+    let totalBrightness = 0;
+    for (let i = 0; i < td.length; i += 4)
+      totalBrightness += 0.299*td[i] + 0.587*td[i+1] + 0.114*td[i+2];
+    const avgBrightness = totalBrightness / (tw * th);
+    // Label threshold: significantly brighter than average
+    const labelThreshold = Math.min(220, avgBrightness + 30);
+
+    let minX = tw, maxX = 0, minY = th, maxY = 0, count = 0;
+    for (let y = 0; y < th; y++) {
+      for (let x = 0; x < tw; x++) {
+        const i = (y * tw + x) * 4;
+        const b = 0.299*td[i] + 0.587*td[i+1] + 0.114*td[i+2];
+        if (b > labelThreshold) {
+          minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+          count++;
+        }
+      }
+    }
+
+    // Need at least 3% of pixels to qualify as a label region
+    if (count < tw * th * 0.03 || maxX <= minX || maxY <= minY) return null;
+
+    // Map back to full resolution with 8% padding
+    const PAD = 0.08;
+    const fx = Math.max(0, (minX / tw - PAD) * srcCanvas.width);
+    const fy = Math.max(0, (minY / th - PAD) * srcCanvas.height);
+    const fw = Math.min(srcCanvas.width  - fx, ((maxX - minX + 1) / tw) * srcCanvas.width  * (1 + PAD*2));
+    const fh = Math.min(srcCanvas.height - fy, ((maxY - minY + 1) / th) * srcCanvas.height * (1 + PAD*2));
+    return { x: fx, y: fy, w: fw, h: fh };
+  }
+
+  // ── Step 2: Crop + simple threshold on the clean label region ─────────────
   function preprocess(srcCanvas) {
-    const MAX = 900;
-    const scale = srcCanvas.width > MAX ? MAX / srcCanvas.width : 1;
-    const w = Math.round(srcCanvas.width * scale);
-    const h = Math.round(srcCanvas.height * scale);
+    // Try to isolate the label
+    const region = findLabelRegion(srcCanvas);
 
-    // Original pixels
-    const cA = document.createElement("canvas");
-    cA.width = w; cA.height = h;
-    const ctxA = cA.getContext("2d");
-    ctxA.drawImage(srcCanvas, 0, 0, w, h);
-    const origPx = ctxA.getImageData(0, 0, w, h).data;
+    let cropped;
+    if (region && region.w > 30 && region.h > 10) {
+      // Crop to label area
+      cropped = document.createElement("canvas");
+      cropped.width  = Math.round(region.w);
+      cropped.height = Math.round(region.h);
+      cropped.getContext("2d").drawImage(
+        srcCanvas, region.x, region.y, region.w, region.h,
+        0, 0, cropped.width, cropped.height
+      );
+    } else {
+      cropped = srcCanvas;
+    }
 
-    // Blurred pixels (local average)
-    const cB = document.createElement("canvas");
-    cB.width = w; cB.height = h;
-    const ctxB = cB.getContext("2d");
-    ctxB.filter = "blur(18px)";
-    ctxB.drawImage(srcCanvas, 0, 0, w, h);
-    const blurPx = ctxB.getImageData(0, 0, w, h).data;
+    // Scale up for better OCR accuracy
+    const MAX = 1000;
+    const scale = cropped.width < MAX ? MAX / cropped.width : 1;
+    const w = Math.round(cropped.width * scale);
+    const h = Math.round(cropped.height * scale);
 
-    // Adaptive threshold output
     const cOut = document.createElement("canvas");
     cOut.width = w; cOut.height = h;
     const ctxOut = cOut.getContext("2d");
-    const out = ctxOut.createImageData(w, h);
-    const d = out.data;
-    for (let i = 0; i < origPx.length; i += 4) {
-      const og = 0.299*origPx[i]  + 0.587*origPx[i+1]  + 0.114*origPx[i+2];
-      const bg = 0.299*blurPx[i]  + 0.587*blurPx[i+1]  + 0.114*blurPx[i+2];
-      const v  = (og - bg < -12) ? 0 : 255;
+    ctxOut.drawImage(cropped, 0, 0, w, h);
+
+    // Simple threshold on the clean label: text is dark (<140), background is light
+    const id = ctxOut.getImageData(0, 0, w, h);
+    const d = id.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const g = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+      const v = g < 140 ? 0 : 255;
       d[i] = d[i+1] = d[i+2] = v; d[i+3] = 255;
     }
-    ctxOut.putImageData(out, 0, 0);
+    ctxOut.putImageData(id, 0, 0);
     return cOut;
   }
 
@@ -249,7 +297,21 @@
     return null;
   }
 
-  // ── Scan ──────────────────────────────────────────────────────────────────
+  // ── Rotate canvas by angle ────────────────────────────────────────────────
+  function rotateCanvas(src, deg) {
+    const swap = deg === 90 || deg === 270;
+    const w = swap ? src.height : src.width;
+    const h = swap ? src.width  : src.height;
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const ctx = c.getContext("2d");
+    ctx.translate(w/2, h/2);
+    ctx.rotate(deg * Math.PI / 180);
+    ctx.drawImage(src, -src.width/2, -src.height/2);
+    return c;
+  }
+
+  // ── Scan: try all 4 rotations, pick the best match ───────────────────────
   async function scanImage() {
     if (!imgElement || !worker) return;
 
@@ -263,26 +325,47 @@
     document.getElementById("fuzzyNote").style.display = "none";
     document.getElementById("btnScan").disabled = true;
 
-    const processed = preprocess(displayCanvas);
-
     try {
-      const { data } = await worker.recognize(processed);
-      const rawText = data.text.trim();
-      const tokens = rawText.toUpperCase().match(/[A-Z0-9][A-Z0-9_\-\.]{2,}/g) || [];
-      const best = tokens.length ? tokens.reduce((a, b) => b.length > a.length ? b : a) : rawText.trim().toUpperCase();
+      let bestResult = null;
+      let bestText = "";
+      let bestRaw = "";
+      const angles = [0, 90, 180, 270];
+
+      for (let i = 0; i < angles.length; i++) {
+        const angle = angles[i];
+        badge.textContent = `Scanning… (${angle}°)`;
+        document.getElementById("progressFill").style.width = (i * 25) + "%";
+
+        const rotated = rotateCanvas(displayCanvas, angle);
+        const processed = preprocess(rotated);
+        const { data } = await worker.recognize(processed);
+        const rawText = data.text.trim();
+        const tokens = rawText.toUpperCase().match(/[A-Z0-9][A-Z0-9_\-\.]{2,}/g) || [];
+        const best = tokens.length ? tokens.reduce((a, b) => b.length > a.length ? b : a) : "";
+
+        // Check for match at this rotation
+        const matchResult = fuzzyMatch(best, cachedParts);
+        if (matchResult) {
+          bestResult = matchResult;
+          bestText = best;
+          bestRaw = rawText;
+          break; // Found a match — no need to try other angles
+        }
+        // Keep the longest token as fallback
+        if (best.length > bestText.length) { bestText = best; bestRaw = rawText; }
+      }
 
       document.getElementById("progressFill").style.width = "100%";
-      document.getElementById("rawText").textContent = rawText || "(nothing detected)";
-      document.getElementById("detectedPart").textContent = best || "(nothing detected)";
+      document.getElementById("rawText").textContent = bestRaw || "(nothing detected)";
+      document.getElementById("detectedPart").textContent = bestText || "(nothing detected)";
 
-      const result = fuzzyMatch(best, cachedParts);
-      if (result) {
+      if (bestResult) {
         badge.className = "badge pass";
         badge.textContent = "✓ PASS";
-        if (!result.exact) {
+        if (!bestResult.exact) {
           const note = document.getElementById("fuzzyNote");
           note.style.display = "block";
-          note.textContent = `⚠ Fuzzy match: OCR read "${best}", matched to "${result.match}" (${result.dist} char diff)`;
+          note.textContent = `⚠ Fuzzy match: "${bestText}" → "${bestResult.match}" (${bestResult.dist} char diff)`;
         }
       } else {
         badge.className = "badge fail";
