@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OCR Bundle Inspection</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      margin-bottom: 6px;
+      color: #f8fafc;
+    }
+
+    .subtitle {
+      font-size: 0.82rem;
+      color: #94a3b8;
+      margin-bottom: 28px;
+    }
+
+    /* ── Camera area ── */
+    .camera-area {
+      width: 100%;
+      max-width: 480px;
+      background: #1e293b;
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+      border: 2px dashed #334155;
+      cursor: pointer;
+    }
+
+    .camera-area:hover { border-color: #6366f1; }
+
+    #preview {
+      width: 100%;
+      display: block;
+      min-height: 220px;
+      object-fit: cover;
+      background: #0f172a;
+    }
+
+    .camera-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
+      gap: 12px;
+      color: #475569;
+    }
+
+    .camera-placeholder svg { width: 56px; height: 56px; }
+    .camera-placeholder p { font-size: 0.9rem; }
+
+    #fileInput { display: none; }
+
+    /* ── Buttons ── */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    button {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    button:active { opacity: 0.8; }
+
+    #btnCapture {
+      background: #6366f1;
+      color: #fff;
+    }
+
+    #btnScan {
+      background: #0ea5e9;
+      color: #fff;
+    }
+
+    #btnScan:disabled {
+      background: #1e3a4a;
+      color: #475569;
+      cursor: default;
+    }
+
+    /* ── Result card ── */
+    #result {
+      margin-top: 24px;
+      width: 100%;
+      max-width: 480px;
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 20px;
+      display: none;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 99px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .badge.pass { background: #14532d; color: #4ade80; }
+    .badge.fail { background: #4c0519; color: #f87171; }
+
+    .result-label {
+      font-size: 0.72rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+    }
+
+    .result-value {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: #f8fafc;
+      margin-bottom: 16px;
+      word-break: break-all;
+    }
+
+    .raw-text {
+      background: #0f172a;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.78rem;
+      color: #64748b;
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: none;
+      width: 22px;
+      height: 22px;
+      border: 3px solid #334155;
+      border-top-color: #0ea5e9;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Parts list toggle ── */
+    #partsSection {
+      margin-top: 24px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    #toggleParts {
+      background: #1e293b;
+      color: #94a3b8;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      padding: 10px 16px;
+      width: 100%;
+      text-align: left;
+    }
+
+    #partsList {
+      display: none;
+      background: #1e293b;
+      border-radius: 10px;
+      margin-top: 8px;
+      padding: 12px 16px;
+    }
+
+    #partsList li {
+      list-style: none;
+      font-size: 0.85rem;
+      font-family: monospace;
+      padding: 4px 0;
+      border-bottom: 1px solid #0f172a;
+      color: #cbd5e1;
+    }
+
+    #partsList li:last-child { border-bottom: none; }
+
+    .add-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .add-row input {
+      flex: 1;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #f8fafc;
+      font-size: 0.85rem;
+      font-family: monospace;
+      text-transform: uppercase;
+    }
+
+    .add-row input:focus { outline: 1px solid #6366f1; }
+
+    .add-row button {
+      flex: 0;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      background: #6366f1;
+      color: #fff;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🔍 Bundle Inspection OCR</h1>
+  <p class="subtitle">Scan a jig board label to verify the part number</p>
+
+  <div class="camera-area" onclick="document.getElementById('fileInput').click()">
+    <div class="camera-placeholder" id="placeholder">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+          d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+          d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+      <p>Tap to take a photo or upload</p>
+    </div>
+    <img id="preview" style="display:none" />
+  </div>
+
+  <!-- accepts camera on mobile, file picker on desktop -->
+  <input type="file" id="fileInput" accept="image/*" capture="environment" />
+
+  <div class="btn-row">
+    <button id="btnCapture" onclick="document.getElementById('fileInput').click()">📷 Camera</button>
+    <button id="btnScan" disabled onclick="scanImage()">Scan Label</button>
+  </div>
+
+  <div id="result">
+    <div class="spinner" id="spinner"></div>
+    <span class="badge" id="badge"></span>
+    <div class="result-label">Detected Part Number</div>
+    <div class="result-value" id="detectedPart">—</div>
+    <div class="result-label">Raw OCR Text</div>
+    <div class="raw-text" id="rawText"></div>
+  </div>
+
+  <div id="partsSection">
+    <button id="toggleParts" onclick="togglePartsList()">📋 Approved Parts List ▾</button>
+    <div id="partsList">
+      <ul id="partsUl"></ul>
+      <div class="add-row">
+        <input type="text" id="newPart" placeholder="ADD NEW PART NUMBER" />
+        <button onclick="addPart()">Add</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  let selectedFile = null;
+
+  document.getElementById("fileInput").addEventListener("change", (e) => {
+    selectedFile = e.target.files[0];
+    if (!selectedFile) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const preview = document.getElementById("preview");
+      preview.src = ev.target.result;
+      preview.style.display = "block";
+      document.getElementById("placeholder").style.display = "none";
+    };
+    reader.readAsDataURL(selectedFile);
+    document.getElementById("btnScan").disabled = false;
+    document.getElementById("result").style.display = "none";
+  });
+
+  async function scanImage() {
+    if (!selectedFile) return;
+
+    const resultDiv = document.getElementById("result");
+    const spinner = document.getElementById("spinner");
+
+    resultDiv.style.display = "block";
+    spinner.style.display = "block";
+    document.getElementById("badge").style.display = "none";
+    document.getElementById("detectedPart").textContent = "—";
+    document.getElementById("rawText").textContent = "";
+
+    const form = new FormData();
+    form.append("image", selectedFile);
+
+    try {
+      const res = await fetch("/ocr", { method: "POST", body: form });
+      const data = await res.json();
+
+      spinner.style.display = "none";
+      document.getElementById("badge").style.display = "inline-block";
+
+      if (data.error) {
+        document.getElementById("badge").className = "badge fail";
+        document.getElementById("badge").textContent = "Error";
+        document.getElementById("detectedPart").textContent = data.error;
+        return;
+      }
+
+      const badge = document.getElementById("badge");
+      badge.className = "badge " + (data.passed ? "pass" : "fail");
+      badge.textContent = data.passed ? "✓ PASS" : "✗ FAIL";
+
+      document.getElementById("detectedPart").textContent = data.detected || "(nothing detected)";
+      document.getElementById("rawText").textContent = data.raw_text || "(empty)";
+
+    } catch (err) {
+      spinner.style.display = "none";
+      document.getElementById("badge").style.display = "inline-block";
+      document.getElementById("badge").className = "badge fail";
+      document.getElementById("badge").textContent = "Connection Error";
+      document.getElementById("detectedPart").textContent = "Cannot reach server";
+    }
+  }
+
+  async function togglePartsList() {
+    const list = document.getElementById("partsList");
+    if (list.style.display === "block") {
+      list.style.display = "none";
+      return;
+    }
+    list.style.display = "block";
+    await refreshParts();
+  }
+
+  async function refreshParts() {
+    const ul = document.getElementById("partsUl");
+    ul.innerHTML = "<li>Loading…</li>";
+    try {
+      const res = await fetch("/parts");
+      const parts = await res.json();
+      ul.innerHTML = parts.map(p => `<li>${p}</li>`).join("") || "<li>No parts yet</li>";
+    } catch {
+      ul.innerHTML = "<li>Could not load parts</li>";
+    }
+  }
+
+  async function addPart() {
+    const input = document.getElementById("newPart");
+    const pn = input.value.trim().toUpperCase();
+    if (!pn) return;
+    await fetch("/parts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ part_number: pn })
+    });
+    input.value = "";
+    await refreshParts();
+  }
+
+  document.getElementById("newPart").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") addPart();
+  });
+</script>
+</body>
+</html>
