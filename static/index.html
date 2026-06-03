@@ -344,8 +344,9 @@
       spinner.style.display = "none";
       document.getElementById("badge").style.display = "inline-block";
       document.getElementById("badge").className = "badge fail";
-      document.getElementById("badge").textContent = "Connection Error";
-      document.getElementById("detectedPart").textContent = "Cannot reach server";
+      document.getElementById("badge").textContent = "Error";
+      document.getElementById("detectedPart").textContent = err.message || "Request failed";
+      document.getElementById("rawText").textContent = "Tip: visit /health to check server status";
     }
   }
 
