@@ -46,7 +46,7 @@ def preprocess_image(image: Image.Image) -> Image.Image:
 def extract_text(image: Image.Image) -> str:
     """Run Tesseract OCR and return cleaned text."""
     processed = preprocess_image(image)
-    config = "--psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-. "
+    config = "--psm 6"
     raw = pytesseract.image_to_string(processed, config=config)
     # Collapse whitespace, keep only non-empty lines
     lines = [re.sub(r"\s+", " ", ln).strip() for ln in raw.splitlines()]
