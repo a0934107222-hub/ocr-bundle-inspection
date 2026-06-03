@@ -304,7 +304,7 @@
     document.getElementById("result").style.display = "none";
   });
 
-  function compressImage(file, maxWidth = 1200, quality = 0.85) {
+  function compressImage(file, maxWidth = 900, quality = 0.90) {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
