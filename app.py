@@ -62,6 +62,38 @@ def index():
     return send_from_directory("static", "index.html")
 
 
+@app.route("/test-ocr")
+def test_ocr():
+    """Generate a simple test image with known text and run OCR on it."""
+    from PIL import ImageDraw, ImageFont
+    img = Image.new("L", (400, 100), color=255)
+    draw = ImageDraw.Draw(img)
+    draw.text((10, 30), "FDU-X2", fill=0)
+    result = pytesseract.image_to_string(img).strip()
+    return jsonify({"test_text": "FDU-X2", "ocr_result": result, "match": "FDU" in result})
+
+
+@app.route("/debug-ocr", methods=["POST"])
+def debug_ocr():
+    """Return the preprocessed image as base64 for inspection."""
+    import base64
+    if "image" not in request.files:
+        return jsonify({"error": "No image"}), 400
+    from PIL import ImageOps
+    image = Image.open(io.BytesIO(request.files["image"].read()))
+    image = ImageOps.exif_transpose(image)
+    processed = preprocess_image(image)
+    buf = io.BytesIO()
+    processed.save(buf, format="PNG")
+    b64 = base64.b64encode(buf.getvalue()).decode()
+    raw = pytesseract.image_to_string(processed)
+    return jsonify({
+        "ocr_result": raw.strip(),
+        "image_size": processed.size,
+        "preview": f"data:image/png;base64,{b64[:200]}..."
+    })
+
+
 @app.route("/health")
 def health():
     """Check if Tesseract is installed and working."""
