@@ -60,6 +60,16 @@ def index():
     return send_from_directory("static", "index.html")
 
 
+@app.route("/health")
+def health():
+    """Check if Tesseract is installed and working."""
+    try:
+        version = pytesseract.get_tesseract_version()
+        return jsonify({"status": "ok", "tesseract_version": str(version)})
+    except Exception as e:
+        return jsonify({"status": "error", "detail": str(e)}), 500
+
+
 @app.route("/ocr", methods=["POST"])
 def ocr():
     if "image" not in request.files:
@@ -71,7 +81,10 @@ def ocr():
     except Exception:
         return jsonify({"error": "Invalid image file"}), 400
 
-    text = extract_text(image)
+    try:
+        text = extract_text(image)
+    except Exception as e:
+        return jsonify({"error": f"OCR failed: {str(e)}"}), 500
 
     # Find the best matching token (longest token that looks like a part number)
     tokens = re.findall(r"[A-Z0-9][A-Z0-9_\-\.]{3,}", text.upper())
