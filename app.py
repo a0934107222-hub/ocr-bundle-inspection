@@ -34,40 +34,31 @@ def preprocess_image(image: Image.Image) -> Image.Image:
     """Enhance image for better OCR accuracy on printed labels."""
     image = image.convert("L")  # grayscale
 
-    # Scale up so label text is at least 800px wide
+    # Scale up so text is large enough for Tesseract
     w, h = image.size
     if w < 1600:
         scale = 1600 / w
         image = image.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
 
-    # Adaptive binarization: much cleaner than contrast boost for printed text
-    import numpy as np
-    arr = np.array(image)
-    # Compute local mean with a large kernel (simulates adaptive threshold)
-    from PIL import ImageFilter as IF
-    blurred = image.filter(IF.GaussianBlur(radius=15))
-    blur_arr = np.array(blurred).astype(int)
-    # Pixels darker than local mean - 10 become black (text), rest white
-    binary = ((arr.astype(int) - blur_arr) < -10).astype(np.uint8) * 255
-    image = Image.fromarray(binary.astype(np.uint8))
+    # Boost contrast then binarize with a fixed threshold
+    image = ImageEnhance.Contrast(image).enhance(3.0)
+    image = image.point(lambda x: 0 if x < 140 else 255, "L")  # binarize
+    image = image.filter(ImageFilter.SHARPEN)
 
     return image
 
 
 def extract_text(image: Image.Image) -> str:
-    """Run Tesseract OCR with multiple PSM modes, return best result."""
+    """Run Tesseract OCR and return cleaned text."""
     processed = preprocess_image(image)
-
-    best = ""
-    for psm in [6, 11, 3]:
-        config = f"--psm {psm} --oem 3"
+    config = "--psm 11 --oem 3"
+    try:
         raw = pytesseract.image_to_string(processed, config=config)
-        lines = [re.sub(r"\s+", " ", ln).strip() for ln in raw.splitlines()]
-        text = "\n".join(ln for ln in lines if ln)
-        if len(text) > len(best):
-            best = text
-
-    return best
+    except Exception:
+        # Fallback: try with minimal config
+        raw = pytesseract.image_to_string(processed)
+    lines = [re.sub(r"\s+", " ", ln).strip() for ln in raw.splitlines()]
+    return "\n".join(ln for ln in lines if ln)
 
 
 # ── Routes ───────────────────────────────────────────────────────────────────

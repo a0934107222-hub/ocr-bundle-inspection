@@ -2,4 +2,3 @@ flask>=3.0
 pillow>=10.0
 pytesseract>=0.3.10
 gunicorn>=21.0
-numpy>=1.24
