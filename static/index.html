@@ -11,79 +11,61 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: #0f172a; color: #e2e8f0;
       min-height: 100vh; display: flex; flex-direction: column;
-      align-items: center; padding: 20px 16px;
+      align-items: center; padding: 24px 16px;
     }
     h1 { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; color: #f8fafc; }
     .subtitle { font-size: 0.8rem; color: #94a3b8; margin-bottom: 20px; text-align: center; }
 
-    /* ── Photo + crop canvas ── */
-    #canvasWrap {
-      position: relative; width: 100%; max-width: 480px;
-      background: #1e293b; border-radius: 16px; overflow: hidden;
-      border: 2px dashed #334155; cursor: crosshair;
+    .photo-box {
+      width: 100%; max-width: 480px; background: #1e293b; border-radius: 16px;
+      overflow: hidden; border: 2px dashed #334155; cursor: pointer; min-height: 200px;
+      display: flex; align-items: center; justify-content: center;
     }
-    #canvasWrap.empty { cursor: pointer; }
-    #baseCanvas { width: 100%; display: block; }
-    #cropCanvas {
-      position: absolute; top: 0; left: 0;
-      width: 100%; height: 100%;
-      touch-action: none;
-    }
-
-    .placeholder {
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; min-height: 220px; gap: 12px; color: #475569;
-    }
+    .photo-box img { width: 100%; display: block; }
+    .placeholder { display: flex; flex-direction: column; align-items: center; gap: 10px; color: #475569; padding: 40px; }
     .placeholder svg { width: 52px; height: 52px; }
-    .placeholder p { font-size: 0.88rem; }
 
     #fileInput { display: none; }
 
-    /* ── Hint banner ── */
-    #hint {
-      display: none; background: #1e3a5f; color: #7dd3fc;
-      font-size: 0.78rem; padding: 8px 14px; border-radius: 8px;
-      margin-top: 10px; width: 100%; max-width: 480px; text-align: center;
-    }
-
-    /* ── Buttons ── */
-    .btn-row { display: flex; gap: 10px; margin-top: 12px; width: 100%; max-width: 480px; }
+    .btn-row { display: flex; gap: 10px; margin-top: 14px; width: 100%; max-width: 480px; }
     button {
-      flex: 1; padding: 13px; border: none; border-radius: 12px;
-      font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+      flex: 1; padding: 14px; border: none; border-radius: 12px;
+      font-size: 1rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
     }
     button:active { opacity: 0.75; }
-    #btnCapture { background: #6366f1; color: #fff; }
+    #btnCamera { background: #6366f1; color: #fff; }
     #btnScan { background: #0ea5e9; color: #fff; }
     #btnScan:disabled { background: #1e3a4a; color: #475569; cursor: default; }
-    #btnClear { background: #334155; color: #94a3b8; flex: 0; padding: 13px 16px; }
 
-    /* ── Result ── */
     #result {
       margin-top: 20px; width: 100%; max-width: 480px;
-      background: #1e293b; border-radius: 16px; padding: 18px; display: none;
+      background: #1e293b; border-radius: 16px; padding: 20px; display: none;
     }
     .badge {
-      display: inline-block; padding: 4px 14px; border-radius: 99px;
-      font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em;
-      text-transform: uppercase; margin-bottom: 12px;
+      display: inline-block; padding: 5px 16px; border-radius: 99px;
+      font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; margin-bottom: 14px;
     }
     .badge.pass { background: #14532d; color: #4ade80; }
     .badge.fail { background: #4c0519; color: #f87171; }
     .badge.scanning { background: #1e3a5f; color: #7dd3fc; }
 
-    .progress-bar { width: 100%; height: 4px; background: #0f172a; border-radius: 2px; margin-bottom: 12px; }
+    .progress-bar { width: 100%; height: 4px; background: #0f172a; border-radius: 2px; margin-bottom: 14px; }
     .progress-fill { height: 100%; background: #0ea5e9; border-radius: 2px; transition: width 0.2s; width: 0%; }
 
     .rl { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
     .rv { font-size: 1.3rem; font-weight: 700; color: #f8fafc; margin-bottom: 14px; word-break: break-all; }
-    .raw { background: #0f172a; border-radius: 8px; padding: 10px; font-size: 0.75rem; color: #64748b; white-space: pre-wrap; font-family: monospace; max-height: 120px; overflow-y: auto; }
+    .raw { background: #0f172a; border-radius: 8px; padding: 10px; font-size: 0.75rem; color: #64748b; white-space: pre-wrap; font-family: monospace; }
 
-    /* ── Parts list ── */
+    /* Preprocessed preview */
+    #previewWrap { margin-top: 14px; display: none; }
+    #previewWrap p { font-size: 0.7rem; color: #475569; margin-bottom: 4px; }
+    #previewCanvas { width: 100%; border-radius: 8px; border: 1px solid #334155; }
+
     #partsSection { margin-top: 20px; width: 100%; max-width: 480px; }
     #toggleParts { background: #1e293b; color: #94a3b8; border-radius: 10px; font-size: 0.83rem; padding: 10px 16px; width: 100%; text-align: left; }
     #partsList { display: none; background: #1e293b; border-radius: 10px; margin-top: 8px; padding: 12px 16px; }
-    #partsList li { list-style: none; font-size: 0.83rem; font-family: monospace; padding: 4px 0; border-bottom: 1px solid #0f172a; color: #cbd5e1; }
+    #partsList li { list-style: none; font-size: 0.83rem; font-family: monospace; padding: 5px 0; border-bottom: 1px solid #0f172a; color: #cbd5e1; }
     #partsList li:last-child { border-bottom: none; }
     .add-row { display: flex; gap: 8px; margin-top: 10px; }
     .add-row input {
@@ -94,11 +76,10 @@
   </style>
 </head>
 <body>
-
   <h1>🔍 Bundle Inspection OCR</h1>
-  <p class="subtitle">Take a photo, then drag to select the label area</p>
+  <p class="subtitle">Take a close-up photo of the label, then tap Scan</p>
 
-  <div id="canvasWrap" class="empty" onclick="handleWrapClick()">
+  <div class="photo-box" id="photoBox" onclick="document.getElementById('fileInput').click()">
     <div class="placeholder" id="placeholder">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -107,18 +88,20 @@
       </svg>
       <p>Tap to take a photo</p>
     </div>
-    <canvas id="baseCanvas" style="display:none"></canvas>
-    <canvas id="cropCanvas" style="display:none"></canvas>
+    <img id="photoPreview" style="display:none" />
   </div>
-
-  <div id="hint">✏️ Drag over the label to select it, then tap Scan Label</div>
 
   <input type="file" id="fileInput" accept="image/*" capture="environment" />
 
   <div class="btn-row">
-    <button id="btnCapture" onclick="document.getElementById('fileInput').click()">📷 Camera</button>
+    <button id="btnCamera" onclick="document.getElementById('fileInput').click()">📷 Camera</button>
     <button id="btnScan" disabled onclick="scanImage()">Scan Label</button>
-    <button id="btnClear" onclick="clearCrop()" style="display:none">✕</button>
+  </div>
+
+  <!-- Shows what Tesseract actually processes -->
+  <div id="previewWrap" style="width:100%;max-width:480px;">
+    <p>🔬 Processed image (what OCR sees):</p>
+    <canvas id="previewCanvas"></canvas>
   </div>
 
   <div id="result">
@@ -142,30 +125,29 @@
   </div>
 
 <script>
-  let imgElement = null;  // the loaded Image object
-  let crop = null;        // { x, y, w, h } in canvas display coords
-  let dragStart = null;
+  let imgElement = null;
   let worker = null;
-  const baseCanvas = document.getElementById("baseCanvas");
-  const cropCanvas = document.getElementById("cropCanvas");
-  const bCtx = baseCanvas.getContext("2d");
-  const cCtx = cropCanvas.getContext("2d");
+  let cachedParts = [];
 
-  // Pre-load Tesseract
-  async function initWorker() {
+  // Load Tesseract + parts list on page open
+  async function init() {
+    // Parts list
+    try {
+      const r = await fetch("/parts");
+      cachedParts = await r.json();
+    } catch { cachedParts = []; }
+
+    // Tesseract worker
     worker = await Tesseract.createWorker("eng", 1, {
       logger: m => {
         if (m.status === "recognizing text")
           document.getElementById("progressFill").style.width = (m.progress * 100) + "%";
       }
     });
+    // PSM 6 = uniform block of text — best for a single label
     await worker.setParameters({ tessedit_pageseg_mode: "6" });
   }
-  initWorker();
-
-  function handleWrapClick() {
-    if (!imgElement) document.getElementById("fileInput").click();
-  }
+  init();
 
   document.getElementById("fileInput").addEventListener("change", e => {
     const file = e.target.files[0];
@@ -175,130 +157,87 @@
       const img = new Image();
       img.onload = () => {
         imgElement = img;
-        // Draw onto baseCanvas at natural size (for OCR)
-        baseCanvas.width = img.width;
-        baseCanvas.height = img.height;
-        bCtx.drawImage(img, 0, 0);
-
-        // Size the crop canvas to match display size
-        cropCanvas.width = baseCanvas.offsetWidth || img.width;
-        cropCanvas.height = baseCanvas.offsetHeight || img.height;
-
+        const preview = document.getElementById("photoPreview");
+        preview.src = ev.target.result;
+        preview.style.display = "block";
         document.getElementById("placeholder").style.display = "none";
-        baseCanvas.style.display = "block";
-        cropCanvas.style.display = "block";
-        document.getElementById("canvasWrap").classList.remove("empty");
-        document.getElementById("hint").style.display = "block";
         document.getElementById("btnScan").disabled = false;
-        document.getElementById("btnClear").style.display = "inline-block";
         document.getElementById("result").style.display = "none";
-        crop = null;
+        document.getElementById("previewWrap").style.display = "none";
       };
       img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
   });
 
-  // ── Crop drawing ─────────────────────────────────────────────────────────
-  function getPos(e) {
-    const rect = cropCanvas.getBoundingClientRect();
-    const src = e.touches ? e.touches[0] : e;
-    return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+  /**
+   * Preprocess image for OCR:
+   * 1. Resize to max 1000px wide (keeps memory low)
+   * 2. Convert to grayscale
+   * 3. Apply threshold at 140 — white label + black text survives cleanly;
+   *    gray metal surface (pixel ~150-180) becomes white (no text noise)
+   */
+  function preprocessToCanvas(img) {
+    const MAX = 1000;
+    const scale = img.width > MAX ? MAX / img.width : 1;
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const ctx = c.getContext("2d");
+    ctx.drawImage(img, 0, 0, w, h);
+
+    const id = ctx.getImageData(0, 0, w, h);
+    const d = id.data;
+    for (let i = 0; i < d.length; i += 4) {
+      // Grayscale
+      const g = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+      // Threshold: dark pixels (text) → black; light/mid pixels → white
+      const v = g < 140 ? 0 : 255;
+      d[i] = d[i+1] = d[i+2] = v;
+      d[i+3] = 255;
+    }
+    ctx.putImageData(id, 0, 0);
+    return c;
   }
 
-  function drawCropRect(r) {
-    cCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
-    if (!r) return;
-    // Dim everything outside selection
-    cCtx.fillStyle = "rgba(0,0,0,0.45)";
-    cCtx.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
-    cCtx.clearRect(r.x, r.y, r.w, r.h);
-    // Selection border
-    cCtx.strokeStyle = "#0ea5e9";
-    cCtx.lineWidth = 2;
-    cCtx.strokeRect(r.x, r.y, r.w, r.h);
-  }
-
-  cropCanvas.addEventListener("pointerdown", e => {
-    if (!imgElement) return;
-    dragStart = getPos(e);
-    cropCanvas.setPointerCapture(e.pointerId);
-    e.preventDefault();
-  });
-
-  cropCanvas.addEventListener("pointermove", e => {
-    if (!dragStart) return;
-    const cur = getPos(e);
-    const r = {
-      x: Math.min(dragStart.x, cur.x), y: Math.min(dragStart.y, cur.y),
-      w: Math.abs(cur.x - dragStart.x), h: Math.abs(cur.y - dragStart.y)
-    };
-    drawCropRect(r);
-    e.preventDefault();
-  });
-
-  cropCanvas.addEventListener("pointerup", e => {
-    if (!dragStart) return;
-    const cur = getPos(e);
-    crop = {
-      x: Math.min(dragStart.x, cur.x), y: Math.min(dragStart.y, cur.y),
-      w: Math.abs(cur.x - dragStart.x), h: Math.abs(cur.y - dragStart.y)
-    };
-    dragStart = null;
-    drawCropRect(crop);
-    e.preventDefault();
-  });
-
-  function clearCrop() {
-    crop = null;
-    cCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
-  }
-
-  // ── Scan ──────────────────────────────────────────────────────────────────
   async function scanImage() {
     if (!imgElement || !worker) return;
 
     const badge = document.getElementById("badge");
     document.getElementById("result").style.display = "block";
     badge.className = "badge scanning";
-    badge.textContent = "Scanning…";
+    badge.textContent = "Processing…";
     document.getElementById("progressFill").style.width = "0%";
     document.getElementById("detectedPart").textContent = "—";
-    document.getElementById("rawText").textContent = "Running OCR…";
+    document.getElementById("rawText").textContent = "";
     document.getElementById("btnScan").disabled = true;
 
-    // Build the image to OCR: cropped region or full image
-    let ocrSource;
-    if (crop && crop.w > 20 && crop.h > 10) {
-      // Map display coords → original image coords
-      const scaleX = imgElement.width / baseCanvas.offsetWidth;
-      const scaleY = imgElement.height / baseCanvas.offsetHeight;
-      const sx = Math.round(crop.x * scaleX);
-      const sy = Math.round(crop.y * scaleY);
-      const sw = Math.round(crop.w * scaleX);
-      const sh = Math.round(crop.h * scaleY);
+    // Preprocess
+    const processed = preprocessToCanvas(imgElement);
 
-      const tmp = document.createElement("canvas");
-      tmp.width = sw; tmp.height = sh;
-      tmp.getContext("2d").drawImage(imgElement, sx, sy, sw, sh, 0, 0, sw, sh);
-      ocrSource = tmp;
-    } else {
-      ocrSource = baseCanvas;
-    }
+    // Show the processed image so user can see what OCR receives
+    const prev = document.getElementById("previewCanvas");
+    prev.width = processed.width; prev.height = processed.height;
+    prev.getContext("2d").drawImage(processed, 0, 0);
+    document.getElementById("previewWrap").style.display = "block";
+
+    badge.textContent = "Scanning…";
 
     try {
-      const { data } = await worker.recognize(ocrSource);
+      const { data } = await worker.recognize(processed);
       const rawText = data.text.trim();
+
+      // Pick the longest alphanumeric token
       const tokens = rawText.toUpperCase().match(/[A-Z0-9][A-Z0-9_\-\.]{2,}/g) || [];
-      const best = tokens.reduce((a, b) => a.length >= b.length ? a : b, rawText.replace(/\s+/g," ").trim().toUpperCase().slice(0,40));
+      const best = tokens.length ? tokens.reduce((a, b) => b.length > a.length ? b : a) : rawText.trim().toUpperCase();
 
       document.getElementById("progressFill").style.width = "100%";
       document.getElementById("rawText").textContent = rawText || "(nothing detected)";
 
-      const res = await fetch("/parts");
-      const parts = await res.json();
-      const passed = parts.includes(best);
-
+      // Validate against cached parts list
+      const passed = cachedParts.includes(best);
       badge.className = "badge " + (passed ? "pass" : "fail");
       badge.textContent = passed ? "✓ PASS" : "✗ FAIL";
       document.getElementById("detectedPart").textContent = best || "(nothing detected)";
@@ -307,32 +246,32 @@
       badge.textContent = "Error";
       document.getElementById("detectedPart").textContent = err.message;
     }
+
     document.getElementById("btnScan").disabled = false;
   }
 
-  // ── Parts list ────────────────────────────────────────────────────────────
   async function togglePartsList() {
     const list = document.getElementById("partsList");
     if (list.style.display === "block") { list.style.display = "none"; return; }
     list.style.display = "block";
-    await refreshParts();
+    renderParts();
   }
-  async function refreshParts() {
+  function renderParts() {
     const ul = document.getElementById("partsUl");
-    ul.innerHTML = "<li>Loading…</li>";
-    try {
-      const res = await fetch("/parts");
-      const parts = await res.json();
-      ul.innerHTML = parts.map(p => `<li>${p}</li>`).join("") || "<li>No parts yet</li>";
-    } catch { ul.innerHTML = "<li>Could not load parts</li>"; }
+    ul.innerHTML = cachedParts.length
+      ? cachedParts.map(p => `<li>${p}</li>`).join("")
+      : "<li>No parts loaded</li>";
   }
   async function addPart() {
     const input = document.getElementById("newPart");
     const pn = input.value.trim().toUpperCase();
     if (!pn) return;
-    await fetch("/parts", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({part_number: pn}) });
+    try {
+      await fetch("/parts", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({part_number: pn}) });
+      if (!cachedParts.includes(pn)) cachedParts.push(pn);
+    } catch { cachedParts.push(pn); }  // save locally even if server unreachable
     input.value = "";
-    await refreshParts();
+    renderParts();
   }
   document.getElementById("newPart").addEventListener("keydown", e => { if (e.key === "Enter") addPart(); });
 </script>
