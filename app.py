@@ -37,7 +37,7 @@ def load_parts_list():
 
 def gemini_read_label(image: Image.Image) -> str:
     """Use Gemini Vision to read text from a label image."""
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-1.5-flash")
 
     # Resize to max 1000px to reduce token usage
     w, h = image.size
@@ -74,7 +74,7 @@ def index():
 def health():
     if not GEMINI_API_KEY:
         return jsonify({"status": "error", "detail": "GEMINI_API_KEY not set"}), 500
-    return jsonify({"status": "ok", "model": "gemini-2.0-flash"})
+    return jsonify({"status": "ok", "model": "gemini-1.5-flash"})
 
 
 @app.route("/ocr", methods=["POST"])
