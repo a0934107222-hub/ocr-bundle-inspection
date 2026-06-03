@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>OCR Bundle Inspection</title>
+  <!-- Tesseract.js — runs OCR entirely in the browser, no server memory needed -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -18,225 +20,96 @@
       padding: 24px 16px;
     }
 
-    h1 {
-      font-size: 1.4rem;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-      margin-bottom: 6px;
-      color: #f8fafc;
-    }
+    h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; color: #f8fafc; }
+    .subtitle { font-size: 0.82rem; color: #94a3b8; margin-bottom: 28px; }
 
-    .subtitle {
-      font-size: 0.82rem;
-      color: #94a3b8;
-      margin-bottom: 28px;
-    }
-
-    /* ── Camera area ── */
     .camera-area {
-      width: 100%;
-      max-width: 480px;
-      background: #1e293b;
-      border-radius: 16px;
-      overflow: hidden;
-      position: relative;
-      border: 2px dashed #334155;
-      cursor: pointer;
+      width: 100%; max-width: 480px;
+      background: #1e293b; border-radius: 16px; overflow: hidden;
+      border: 2px dashed #334155; cursor: pointer;
     }
-
     .camera-area:hover { border-color: #6366f1; }
 
-    #preview {
-      width: 100%;
-      display: block;
-      min-height: 220px;
-      object-fit: cover;
-      background: #0f172a;
-    }
+    #preview { width: 100%; display: block; min-height: 220px; object-fit: cover; background: #0f172a; }
 
     .camera-placeholder {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 220px;
-      gap: 12px;
-      color: #475569;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 220px; gap: 12px; color: #475569;
     }
-
     .camera-placeholder svg { width: 56px; height: 56px; }
     .camera-placeholder p { font-size: 0.9rem; }
 
     #fileInput { display: none; }
 
-    /* ── Buttons ── */
-    .btn-row {
-      display: flex;
-      gap: 12px;
-      margin-top: 16px;
-      width: 100%;
-      max-width: 480px;
-    }
+    .btn-row { display: flex; gap: 12px; margin-top: 16px; width: 100%; max-width: 480px; }
 
     button {
-      flex: 1;
-      padding: 14px;
-      border: none;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.15s;
+      flex: 1; padding: 14px; border: none; border-radius: 12px;
+      font-size: 1rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
     }
-
     button:active { opacity: 0.8; }
 
-    #btnCapture {
-      background: #6366f1;
-      color: #fff;
-    }
+    #btnCapture { background: #6366f1; color: #fff; }
+    #btnScan { background: #0ea5e9; color: #fff; }
+    #btnScan:disabled { background: #1e3a4a; color: #475569; cursor: default; }
 
-    #btnScan {
-      background: #0ea5e9;
-      color: #fff;
-    }
-
-    #btnScan:disabled {
-      background: #1e3a4a;
-      color: #475569;
-      cursor: default;
-    }
-
-    /* ── Result card ── */
     #result {
-      margin-top: 24px;
-      width: 100%;
-      max-width: 480px;
-      background: #1e293b;
-      border-radius: 16px;
-      padding: 20px;
-      display: none;
+      margin-top: 24px; width: 100%; max-width: 480px;
+      background: #1e293b; border-radius: 16px; padding: 20px; display: none;
     }
 
     .badge {
-      display: inline-block;
-      padding: 4px 14px;
-      border-radius: 99px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      margin-bottom: 14px;
+      display: inline-block; padding: 4px 14px; border-radius: 99px;
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; margin-bottom: 14px;
     }
-
     .badge.pass { background: #14532d; color: #4ade80; }
     .badge.fail { background: #4c0519; color: #f87171; }
+    .badge.scanning { background: #1e3a5f; color: #7dd3fc; }
 
     .result-label {
-      font-size: 0.72rem;
-      color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 4px;
+      font-size: 0.72rem; color: #64748b; text-transform: uppercase;
+      letter-spacing: 0.08em; margin-bottom: 4px;
     }
-
     .result-value {
-      font-size: 1.35rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      color: #f8fafc;
-      margin-bottom: 16px;
-      word-break: break-all;
+      font-size: 1.35rem; font-weight: 700; letter-spacing: 0.05em;
+      color: #f8fafc; margin-bottom: 16px; word-break: break-all;
     }
-
     .raw-text {
-      background: #0f172a;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 0.78rem;
-      color: #64748b;
-      white-space: pre-wrap;
-      font-family: monospace;
+      background: #0f172a; border-radius: 8px; padding: 10px 14px;
+      font-size: 0.78rem; color: #64748b; white-space: pre-wrap; font-family: monospace;
     }
 
-    /* ── Spinner ── */
-    .spinner {
-      display: none;
-      width: 22px;
-      height: 22px;
-      border: 3px solid #334155;
-      border-top-color: #0ea5e9;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      margin: 0 auto;
+    .progress-bar {
+      width: 100%; height: 4px; background: #1e3a4a;
+      border-radius: 2px; margin-bottom: 14px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; background: #0ea5e9; border-radius: 2px;
+      transition: width 0.3s ease; width: 0%;
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── Parts list toggle ── */
-    #partsSection {
-      margin-top: 24px;
-      width: 100%;
-      max-width: 480px;
-    }
-
+    #partsSection { margin-top: 24px; width: 100%; max-width: 480px; }
     #toggleParts {
-      background: #1e293b;
-      color: #94a3b8;
-      border-radius: 10px;
-      font-size: 0.85rem;
-      padding: 10px 16px;
-      width: 100%;
-      text-align: left;
+      background: #1e293b; color: #94a3b8; border-radius: 10px;
+      font-size: 0.85rem; padding: 10px 16px; width: 100%; text-align: left;
     }
-
     #partsList {
-      display: none;
-      background: #1e293b;
-      border-radius: 10px;
-      margin-top: 8px;
-      padding: 12px 16px;
+      display: none; background: #1e293b; border-radius: 10px; margin-top: 8px; padding: 12px 16px;
     }
-
     #partsList li {
-      list-style: none;
-      font-size: 0.85rem;
-      font-family: monospace;
-      padding: 4px 0;
-      border-bottom: 1px solid #0f172a;
-      color: #cbd5e1;
+      list-style: none; font-size: 0.85rem; font-family: monospace;
+      padding: 4px 0; border-bottom: 1px solid #0f172a; color: #cbd5e1;
     }
-
     #partsList li:last-child { border-bottom: none; }
 
-    .add-row {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-    }
-
+    .add-row { display: flex; gap: 8px; margin-top: 12px; }
     .add-row input {
-      flex: 1;
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      padding: 8px 12px;
-      color: #f8fafc;
-      font-size: 0.85rem;
-      font-family: monospace;
-      text-transform: uppercase;
+      flex: 1; background: #0f172a; border: 1px solid #334155; border-radius: 8px;
+      padding: 8px 12px; color: #f8fafc; font-size: 0.85rem; font-family: monospace; text-transform: uppercase;
     }
-
     .add-row input:focus { outline: 1px solid #6366f1; }
-
-    .add-row button {
-      flex: 0;
-      padding: 8px 14px;
-      font-size: 0.85rem;
-      background: #6366f1;
-      color: #fff;
-      border-radius: 8px;
-    }
+    .add-row button { flex: 0; padding: 8px 14px; font-size: 0.85rem; background: #6366f1; color: #fff; border-radius: 8px; }
   </style>
 </head>
 <body>
@@ -257,7 +130,6 @@
     <img id="preview" style="display:none" />
   </div>
 
-  <!-- accepts camera on mobile, file picker on desktop -->
   <input type="file" id="fileInput" accept="image/*" capture="environment" />
 
   <div class="btn-row">
@@ -266,8 +138,8 @@
   </div>
 
   <div id="result">
-    <div class="spinner" id="spinner"></div>
-    <span class="badge" id="badge"></span>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <span class="badge scanning" id="badge">Scanning…</span>
     <div class="result-label">Detected Part Number</div>
     <div class="result-value" id="detectedPart">—</div>
     <div class="result-label">Raw OCR Text</div>
@@ -287,11 +159,24 @@
 
 <script>
   let selectedFile = null;
+  let worker = null;
+
+  // Pre-load Tesseract worker in background when page opens
+  async function initWorker() {
+    worker = await Tesseract.createWorker("eng", 1, {
+      logger: (m) => {
+        if (m.status === "recognizing text") {
+          document.getElementById("progressFill").style.width = (m.progress * 100) + "%";
+        }
+      }
+    });
+    await worker.setParameters({ tessedit_pageseg_mode: "11" }); // sparse text
+  }
+  initWorker();
 
   document.getElementById("fileInput").addEventListener("change", (e) => {
     selectedFile = e.target.files[0];
     if (!selectedFile) return;
-
     const reader = new FileReader();
     reader.onload = (ev) => {
       const preview = document.getElementById("preview");
@@ -304,87 +189,54 @@
     document.getElementById("result").style.display = "none";
   });
 
-  function compressImage(file, maxWidth = 900, quality = 0.90) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const scale = Math.min(1, maxWidth / img.width);
-          const canvas = document.createElement("canvas");
-          canvas.width = Math.round(img.width * scale);
-          canvas.height = Math.round(img.height * scale);
-          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob(
-            (blob) => resolve(blob || file),  // fallback to original if toBlob fails
-            "image/jpeg",
-            quality
-          );
-        };
-        img.onerror = () => resolve(file);  // fallback to original on error
-        img.src = e.target.result;
-      };
-      reader.onerror = () => resolve(file);  // fallback to original on error
-      reader.readAsDataURL(file);
-    });
-  }
-
   async function scanImage() {
-    if (!selectedFile) return;
+    if (!selectedFile || !worker) return;
 
     const resultDiv = document.getElementById("result");
-    const spinner = document.getElementById("spinner");
+    const badge = document.getElementById("badge");
 
     resultDiv.style.display = "block";
-    spinner.style.display = "block";
-    document.getElementById("badge").style.display = "none";
+    badge.className = "badge scanning";
+    badge.textContent = "Scanning…";
+    badge.style.display = "inline-block";
+    document.getElementById("progressFill").style.width = "0%";
     document.getElementById("detectedPart").textContent = "—";
-    document.getElementById("rawText").textContent = "Compressing image…";
-
-    const compressed = await compressImage(selectedFile);
-
-    document.getElementById("rawText").textContent = "Scanning…";
-
-    const form = new FormData();
-    form.append("image", compressed, "label.jpg");
+    document.getElementById("rawText").textContent = "Running OCR on your phone…";
+    document.getElementById("btnScan").disabled = true;
 
     try {
-      const res = await fetch("/ocr", { method: "POST", body: form });
-      const data = await res.json();
+      // Run OCR locally on the phone
+      const { data } = await worker.recognize(selectedFile);
+      const rawText = data.text.trim();
 
-      spinner.style.display = "none";
-      document.getElementById("badge").style.display = "inline-block";
+      // Extract best part number token
+      const tokens = rawText.toUpperCase().match(/[A-Z0-9][A-Z0-9_\-\.]{2,}/g) || [];
+      const best = tokens.reduce((a, b) => a.length >= b.length ? a : b, rawText.trim().toUpperCase());
 
-      if (data.error) {
-        document.getElementById("badge").className = "badge fail";
-        document.getElementById("badge").textContent = "Error";
-        document.getElementById("detectedPart").textContent = data.error;
-        return;
-      }
+      document.getElementById("progressFill").style.width = "100%";
+      document.getElementById("rawText").textContent = rawText || "(nothing detected)";
 
-      const badge = document.getElementById("badge");
-      badge.className = "badge " + (data.passed ? "pass" : "fail");
-      badge.textContent = data.passed ? "✓ PASS" : "✗ FAIL";
+      // Validate against server parts list
+      const res = await fetch("/parts");
+      const parts = await res.json();
+      const passed = parts.includes(best);
 
-      document.getElementById("detectedPart").textContent = data.detected || "(nothing detected)";
-      document.getElementById("rawText").textContent = data.raw_text || "(empty)";
+      badge.className = "badge " + (passed ? "pass" : "fail");
+      badge.textContent = passed ? "✓ PASS" : "✗ FAIL";
+      document.getElementById("detectedPart").textContent = best || "(nothing detected)";
 
     } catch (err) {
-      spinner.style.display = "none";
-      document.getElementById("badge").style.display = "inline-block";
-      document.getElementById("badge").className = "badge fail";
-      document.getElementById("badge").textContent = "Error";
-      document.getElementById("detectedPart").textContent = err.message || "Request failed";
-      document.getElementById("rawText").textContent = "Tip: visit /health to check server status";
+      badge.className = "badge fail";
+      badge.textContent = "Error";
+      document.getElementById("detectedPart").textContent = err.message;
     }
+
+    document.getElementById("btnScan").disabled = false;
   }
 
   async function togglePartsList() {
     const list = document.getElementById("partsList");
-    if (list.style.display === "block") {
-      list.style.display = "none";
-      return;
-    }
+    if (list.style.display === "block") { list.style.display = "none"; return; }
     list.style.display = "block";
     await refreshParts();
   }
@@ -396,9 +248,7 @@
       const res = await fetch("/parts");
       const parts = await res.json();
       ul.innerHTML = parts.map(p => `<li>${p}</li>`).join("") || "<li>No parts yet</li>";
-    } catch {
-      ul.innerHTML = "<li>Could not load parts</li>";
-    }
+    } catch { ul.innerHTML = "<li>Could not load parts</li>"; }
   }
 
   async function addPart() {
