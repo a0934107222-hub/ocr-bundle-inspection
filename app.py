@@ -31,26 +31,43 @@ def load_parts_list():
 
 
 def preprocess_image(image: Image.Image) -> Image.Image:
-    """Enhance image for better OCR accuracy on small labels."""
-    image = image.convert("L")                          # grayscale
-    image = ImageEnhance.Contrast(image).enhance(2.5)  # boost contrast
-    image = image.filter(ImageFilter.SHARPEN)           # sharpen
-    # Scale up if small
+    """Enhance image for better OCR accuracy on printed labels."""
+    image = image.convert("L")  # grayscale
+
+    # Scale up so label text is at least 800px wide
     w, h = image.size
-    if w < 800:
-        scale = 800 / w
+    if w < 1600:
+        scale = 1600 / w
         image = image.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+
+    # Adaptive binarization: much cleaner than contrast boost for printed text
+    import numpy as np
+    arr = np.array(image)
+    # Compute local mean with a large kernel (simulates adaptive threshold)
+    from PIL import ImageFilter as IF
+    blurred = image.filter(IF.GaussianBlur(radius=15))
+    blur_arr = np.array(blurred).astype(int)
+    # Pixels darker than local mean - 10 become black (text), rest white
+    binary = ((arr.astype(int) - blur_arr) < -10).astype(np.uint8) * 255
+    image = Image.fromarray(binary.astype(np.uint8))
+
     return image
 
 
 def extract_text(image: Image.Image) -> str:
-    """Run Tesseract OCR and return cleaned text."""
+    """Run Tesseract OCR with multiple PSM modes, return best result."""
     processed = preprocess_image(image)
-    config = "--psm 6"
-    raw = pytesseract.image_to_string(processed, config=config)
-    # Collapse whitespace, keep only non-empty lines
-    lines = [re.sub(r"\s+", " ", ln).strip() for ln in raw.splitlines()]
-    return "\n".join(ln for ln in lines if ln)
+
+    best = ""
+    for psm in [6, 11, 3]:
+        config = f"--psm {psm} --oem 3"
+        raw = pytesseract.image_to_string(processed, config=config)
+        lines = [re.sub(r"\s+", " ", ln).strip() for ln in raw.splitlines()]
+        text = "\n".join(ln for ln in lines if ln)
+        if len(text) > len(best):
+            best = text
+
+    return best
 
 
 # ── Routes ───────────────────────────────────────────────────────────────────
