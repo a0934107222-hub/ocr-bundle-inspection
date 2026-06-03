@@ -79,7 +79,9 @@ def ocr():
 
     file = request.files["image"]
     try:
+        from PIL import ImageOps
         image = Image.open(io.BytesIO(file.read()))
+        image = ImageOps.exif_transpose(image)  # fix iOS/Android rotation
     except Exception:
         return jsonify({"error": "Invalid image file"}), 400
 
