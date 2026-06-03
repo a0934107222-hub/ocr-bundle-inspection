@@ -32,18 +32,12 @@ def load_parts_list():
 
 def preprocess_image(image: Image.Image) -> Image.Image:
     """Enhance image for better OCR accuracy on printed labels."""
-    image = image.convert("L")  # grayscale
-
-    # Scale up so text is large enough for Tesseract
+    # Keep RGB — don't convert to grayscale, let Tesseract handle it
     w, h = image.size
+    # Scale up so text is large enough for Tesseract
     if w < 1600:
         scale = 1600 / w
         image = image.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
-
-    # Mild contrast + sharpen only — no binarization (avoids metal surface noise)
-    image = ImageEnhance.Contrast(image).enhance(1.8)
-    image = ImageEnhance.Sharpness(image).enhance(2.0)
-
     return image
 
 
@@ -135,6 +129,8 @@ def ocr():
         "detected": best_match,
         "passed": passed,
         "total_parts": len(parts),
+        "image_size": f"{image.size[0]}x{image.size[1]}",
+        "image_mode": image.mode,
     })
 
 
