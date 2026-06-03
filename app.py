@@ -40,10 +40,9 @@ def preprocess_image(image: Image.Image) -> Image.Image:
         scale = 1600 / w
         image = image.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
 
-    # Boost contrast then binarize with a fixed threshold
-    image = ImageEnhance.Contrast(image).enhance(3.0)
-    image = image.point(lambda x: 0 if x < 140 else 255, "L")  # binarize
-    image = image.filter(ImageFilter.SHARPEN)
+    # Mild contrast + sharpen only — no binarization (avoids metal surface noise)
+    image = ImageEnhance.Contrast(image).enhance(1.8)
+    image = ImageEnhance.Sharpness(image).enhance(2.0)
 
     return image
 
@@ -51,12 +50,7 @@ def preprocess_image(image: Image.Image) -> Image.Image:
 def extract_text(image: Image.Image) -> str:
     """Run Tesseract OCR and return cleaned text."""
     processed = preprocess_image(image)
-    config = "--psm 11 --oem 3"
-    try:
-        raw = pytesseract.image_to_string(processed, config=config)
-    except Exception:
-        # Fallback: try with minimal config
-        raw = pytesseract.image_to_string(processed)
+    raw = pytesseract.image_to_string(processed)
     lines = [re.sub(r"\s+", " ", ln).strip() for ln in raw.splitlines()]
     return "\n".join(ln for ln in lines if ln)
 
@@ -92,7 +86,8 @@ def ocr():
     try:
         text = extract_text(image)
     except Exception as e:
-        return jsonify({"error": f"OCR failed: {str(e)}"}), 500
+        import traceback
+        return jsonify({"error": f"OCR failed: {str(e)}", "trace": traceback.format_exc()}), 500
 
     # Find the best matching token (longest token that looks like a part number)
     tokens = re.findall(r"[A-Z0-9][A-Z0-9_\-\.]{3,}", text.upper())
