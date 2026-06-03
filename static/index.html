@@ -9,30 +9,19 @@
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px}
     h1{font-size:1.3rem;font-weight:700;margin-bottom:4px;color:#f8fafc}
-    .sub{font-size:.8rem;color:#94a3b8;margin-bottom:18px;text-align:center}
-
-    /* ── image + crop overlay ── */
-    #imgWrap{position:relative;width:100%;max-width:480px;background:#1e293b;border-radius:14px;overflow:hidden;border:2px dashed #334155;min-height:180px;display:flex;align-items:center;justify-content:center}
-    #imgWrap img{width:100%;display:block;user-select:none;-webkit-user-select:none}
-    #overlay{position:absolute;inset:0;touch-action:none;cursor:crosshair}
-    /* dim layer */
-    #dimCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-    .placeholder{display:flex;flex-direction:column;align-items:center;gap:10px;color:#475569;padding:40px;cursor:pointer}
-    .placeholder svg{width:48px;height:48px}
-
+    .sub{font-size:.8rem;color:#94a3b8;margin-bottom:16px;text-align:center}
+    #canvas{width:100%;max-width:480px;border-radius:14px;display:block;touch-action:none;cursor:crosshair;background:#1e293b;border:2px dashed #334155}
     #fileInput{display:none}
-    .hint{font-size:.75rem;color:#7dd3fc;background:#1e3a5f;border-radius:8px;padding:7px 12px;margin-top:10px;width:100%;max-width:480px;text-align:center;display:none}
-
-    .btn-row{display:flex;gap:8px;margin-top:12px;width:100%;max-width:480px}
-    button{flex:1;padding:13px;border:none;border-radius:12px;font-size:.95rem;font-weight:600;cursor:pointer;transition:opacity .15s}
+    .hint{font-size:.75rem;color:#7dd3fc;background:#1e3a5f;border-radius:8px;padding:7px 12px;margin-top:8px;width:100%;max-width:480px;text-align:center}
+    .btn-row{display:flex;gap:8px;margin-top:10px;width:100%;max-width:480px}
+    button{flex:1;padding:13px;border:none;border-radius:12px;font-size:.93rem;font-weight:600;cursor:pointer;transition:opacity .15s}
     button:active{opacity:.75}
     #btnCamera{background:#6366f1;color:#fff}
-    #btnClear{background:#334155;color:#94a3b8;flex:0;padding:13px 14px;display:none}
+    #btnClear{background:#334155;color:#94a3b8;flex:0;padding:13px 14px}
     #btnScan{background:#0ea5e9;color:#fff}
     #btnScan:disabled{background:#1e3a4a;color:#475569;cursor:default}
-
-    /* ── result ── */
-    #result{margin-top:16px;width:100%;max-width:480px;background:#1e293b;border-radius:14px;padding:18px;display:none}
+    #selInfo{font-size:.72rem;color:#64748b;margin-top:6px;width:100%;max-width:480px;text-align:center;min-height:1.2em}
+    #result{margin-top:14px;width:100%;max-width:480px;background:#1e293b;border-radius:14px;padding:18px;display:none}
     .badge{display:inline-block;padding:4px 14px;border-radius:99px;font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px}
     .badge.pass{background:#14532d;color:#4ade80}
     .badge.fail{background:#4c0519;color:#f87171}
@@ -43,9 +32,7 @@
     .rv{font-size:1.25rem;font-weight:700;color:#f8fafc;margin-bottom:12px;word-break:break-all}
     .raw{background:#0f172a;border-radius:8px;padding:10px;font-size:.75rem;color:#64748b;white-space:pre-wrap;font-family:monospace;max-height:90px;overflow-y:auto}
     .fuzzy{font-size:.72rem;color:#f59e0b;margin-top:6px;display:none}
-
-    /* ── parts list ── */
-    #partsSection{margin-top:16px;width:100%;max-width:480px}
+    #partsSection{margin-top:14px;width:100%;max-width:480px}
     #toggleParts{background:#1e293b;color:#94a3b8;border-radius:10px;font-size:.83rem;padding:10px 16px;width:100%;text-align:left}
     #partsList{display:none;background:#1e293b;border-radius:10px;margin-top:8px;padding:12px 16px}
     #partsList li{list-style:none;font-size:.83rem;font-family:monospace;padding:5px 0;border-bottom:1px solid #0f172a;color:#cbd5e1}
@@ -57,24 +44,12 @@
 </head>
 <body>
   <h1>🔍 Bundle Inspection OCR</h1>
-  <p class="sub">Take photo → drag to select label → Scan</p>
+  <p class="sub">Take photo → drag on label → Scan</p>
 
-  <div id="imgWrap" onclick="handleWrapClick()">
-    <div class="placeholder" id="placeholder">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-          d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
-      </svg>
-      <p>Tap to take a photo</p>
-    </div>
-    <img id="photo" style="display:none" draggable="false"/>
-    <canvas id="dimCanvas" style="display:none"></canvas>
-    <div id="overlay" style="display:none"></div>
-  </div>
-
-  <div class="hint" id="hint">✏️ Drag over the label to select it, then tap Scan Label</div>
+  <canvas id="canvas" width="480" height="320"></canvas>
+  <div class="hint">✏️ Drag your finger over the white label to select it</div>
   <input type="file" id="fileInput" accept="image/*" capture="environment"/>
+  <div id="selInfo">No selection — tap canvas after photo to select label</div>
 
   <div class="btn-row">
     <button id="btnCamera" onclick="document.getElementById('fileInput').click()">📷 Camera</button>
@@ -104,34 +79,39 @@
   </div>
 
 <script>
-  // ── State ─────────────────────────────────────────────────────────────────
-  let origImg = null;       // HTMLImageElement (full resolution)
-  let sel = null;           // selection as fraction {x,y,w,h} of displayed img
-  let dragStart = null;
-  let worker = null;
+  const cv   = document.getElementById("canvas");
+  const ctx  = cv.getContext("2d");
+  let origImg  = null;   // full-res Image element
+  let dispRect = null;   // canvas bounding rect (updated on each interaction)
+  let sel      = null;   // {x,y,w,h} in CANVAS display pixels
+  let drag     = null;   // drag start in canvas pixels
+  let worker   = null;
   let cachedParts = [];
-
-  const photo    = document.getElementById("photo");
-  const overlay  = document.getElementById("overlay");
-  const dimCv    = document.getElementById("dimCanvas");
-  const dimCtx   = dimCv.getContext("2d");
 
   // ── Init ──────────────────────────────────────────────────────────────────
   async function init() {
+    drawPlaceholder();
     try { const r = await fetch("/parts"); cachedParts = await r.json(); } catch {}
     worker = await Tesseract.createWorker("eng", 1, {
       logger: m => {
         if (m.status === "recognizing text")
-          document.getElementById("progFill").style.width = (m.progress * 100) + "%";
+          document.getElementById("progFill").style.width = (m.progress*100)+"%";
       }
     });
     await worker.setParameters({ tessedit_pageseg_mode: "6" });
   }
   init();
 
-  // ── Load photo ────────────────────────────────────────────────────────────
-  function handleWrapClick() { if (!origImg) document.getElementById("fileInput").click(); }
+  function drawPlaceholder() {
+    ctx.fillStyle = "#1e293b";
+    ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.fillStyle = "#475569";
+    ctx.font = "16px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Tap 📷 Camera to take a photo", cv.width/2, cv.height/2);
+  }
 
+  // ── Load photo ────────────────────────────────────────────────────────────
   document.getElementById("fileInput").addEventListener("change", e => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
@@ -139,159 +119,149 @@
       const img = new Image();
       img.onload = () => {
         origImg = img;
-        photo.src = ev.target.result;
-        photo.style.display = "block";
-        document.getElementById("placeholder").style.display = "none";
-
-        // Show overlay + dim canvas
-        dimCv.style.display  = "block";
-        overlay.style.display = "block";
-        document.getElementById("hint").style.display = "block";
-        document.getElementById("btnClear").style.display = "inline-block";
+        sel = null;
+        fitAndDraw();
         document.getElementById("btnScan").disabled = false;
         document.getElementById("result").style.display = "none";
-        sel = null;
-        redrawDim();
+        document.getElementById("selInfo").textContent = "Drag over the label to select it";
       };
       img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
   });
 
-  // ── Dim canvas: size it to match displayed photo ──────────────────────────
-  function syncDimSize() {
-    const r = photo.getBoundingClientRect();
-    dimCv.width  = r.width;
-    dimCv.height = r.height;
+  // Fit image into canvas maintaining aspect ratio
+  function fitAndDraw() {
+    const maxW = cv.offsetWidth  || 480;
+    const scale = maxW / origImg.width;
+    cv.width  = origImg.width  * scale;
+    cv.height = origImg.height * scale;
+    redraw();
   }
 
-  function redrawDim() {
-    syncDimSize();
-    dimCtx.clearRect(0, 0, dimCv.width, dimCv.height);
-    if (!sel) return;
-    const {x, y, w, h} = selToPx();
-    // darken everything outside selection
-    dimCtx.fillStyle = "rgba(0,0,0,0.50)";
-    dimCtx.fillRect(0, 0, dimCv.width, dimCv.height);
-    dimCtx.clearRect(x, y, w, h);
-    dimCtx.strokeStyle = "#0ea5e9";
-    dimCtx.lineWidth = 2;
-    dimCtx.strokeRect(x, y, w, h);
+  function redraw() {
+    ctx.clearRect(0,0,cv.width,cv.height);
+    if (origImg) ctx.drawImage(origImg, 0, 0, cv.width, cv.height);
+    if (sel && sel.w > 2 && sel.h > 2) {
+      // dim outside
+      ctx.fillStyle = "rgba(0,0,0,0.50)";
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.clearRect(sel.x, sel.y, sel.w, sel.h);
+      // redraw image in selection (so it shows through)
+      ctx.drawImage(origImg,
+        sel.x / cv.width * origImg.width,
+        sel.y / cv.height * origImg.height,
+        sel.w / cv.width * origImg.width,
+        sel.h / cv.height * origImg.height,
+        sel.x, sel.y, sel.w, sel.h);
+      ctx.strokeStyle = "#0ea5e9";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(sel.x, sel.y, sel.w, sel.h);
+      document.getElementById("selInfo").textContent =
+        `✅ Selection active (${Math.round(sel.w)}×${Math.round(sel.h)}px on screen) — tap Scan Label`;
+    } else {
+      document.getElementById("selInfo").textContent =
+        origImg ? "Drag over the label to select it" : "Take a photo first";
+    }
   }
 
-  // sel is stored as fractions of displayed photo size
-  function selToPx() {
-    const r = photo.getBoundingClientRect();
-    return { x: sel.x * r.width, y: sel.y * r.height, w: sel.w * r.width, h: sel.h * r.height };
-  }
-
-  function clearSel() { sel = null; redrawDim(); }
-
-  // ── Pointer events on overlay ─────────────────────────────────────────────
-  function ptrFrac(e) {
-    const r = overlay.getBoundingClientRect();
+  // ── Get canvas-relative coordinates ──────────────────────────────────────
+  function getXY(e) {
+    dispRect = cv.getBoundingClientRect();
     const src = e.touches ? e.touches[0] : e;
-    return { x: (src.clientX - r.left) / r.width, y: (src.clientY - r.top)  / r.height };
-  }
-
-  overlay.addEventListener("pointerdown", e => {
-    if (!origImg) return;
-    dragStart = ptrFrac(e);
-    overlay.setPointerCapture(e.pointerId);
-    e.preventDefault();
-  });
-
-  overlay.addEventListener("pointermove", e => {
-    if (!dragStart) return;
-    const cur = ptrFrac(e);
-    sel = normSel(dragStart, cur);
-    redrawDim();
-    e.preventDefault();
-  });
-
-  overlay.addEventListener("pointerup", e => {
-    if (!dragStart) return;
-    const cur = ptrFrac(e);
-    sel = normSel(dragStart, cur);
-    dragStart = null;
-    redrawDim();
-    e.preventDefault();
-  });
-
-  function normSel(a, b) {
+    // Scale from CSS pixels to canvas pixels
+    const scaleX = cv.width  / dispRect.width;
+    const scaleY = cv.height / dispRect.height;
     return {
-      x: Math.max(0, Math.min(a.x, b.x)),
-      y: Math.max(0, Math.min(a.y, b.y)),
-      w: Math.min(1 - Math.max(0, Math.min(a.x, b.x)), Math.abs(b.x - a.x)),
-      h: Math.min(1 - Math.max(0, Math.min(a.y, b.y)), Math.abs(b.y - a.y))
+      x: (src.clientX - dispRect.left) * scaleX,
+      y: (src.clientY - dispRect.top)  * scaleY
     };
   }
 
-  // ── Extract selected region from ORIGINAL image ───────────────────────────
-  function extractRegion() {
-    if (!origImg) return null;
-    if (!sel || sel.w < 0.01 || sel.h < 0.01) return null; // too small / no selection
+  // ── Mouse events (desktop) ────────────────────────────────────────────────
+  cv.addEventListener("mousedown", e => { if (!origImg) return; drag = getXY(e); e.preventDefault(); });
+  cv.addEventListener("mousemove", e => {
+    if (!drag) return;
+    const cur = getXY(e);
+    sel = mkSel(drag, cur); redraw(); e.preventDefault();
+  });
+  cv.addEventListener("mouseup", e => {
+    if (!drag) return;
+    const cur = getXY(e); sel = mkSel(drag, cur); drag = null; redraw(); e.preventDefault();
+  });
 
-    const sx = sel.x * origImg.width;
-    const sy = sel.y * origImg.height;
-    const sw = sel.w * origImg.width;
-    const sh = sel.h * origImg.height;
+  // ── Touch events (mobile) ─────────────────────────────────────────────────
+  cv.addEventListener("touchstart", e => { if (!origImg) return; drag = getXY(e); e.preventDefault(); }, {passive:false});
+  cv.addEventListener("touchmove",  e => {
+    if (!drag) return;
+    const cur = getXY(e); sel = mkSel(drag, cur); redraw(); e.preventDefault();
+  }, {passive:false});
+  cv.addEventListener("touchend",   e => {
+    if (!drag) return;
+    const t = e.changedTouches[0];
+    dispRect = cv.getBoundingClientRect();
+    const scaleX = cv.width / dispRect.width, scaleY = cv.height / dispRect.height;
+    const cur = { x:(t.clientX-dispRect.left)*scaleX, y:(t.clientY-dispRect.top)*scaleY };
+    sel = mkSel(drag, cur); drag = null; redraw(); e.preventDefault();
+  }, {passive:false});
 
-    // Scale up if needed for OCR accuracy
-    const TARGET = 800;
+  function mkSel(a, b) {
+    return {
+      x: Math.max(0, Math.min(a.x, b.x)),
+      y: Math.max(0, Math.min(a.y, b.y)),
+      w: Math.min(cv.width,  Math.abs(b.x - a.x)),
+      h: Math.min(cv.height, Math.abs(b.y - a.y))
+    };
+  }
+
+  function clearSel() { sel = null; redraw(); }
+
+  // ── Extract cropped region at full resolution ─────────────────────────────
+  function extractCrop() {
+    if (!sel || sel.w < 5 || sel.h < 5) return null;
+    // Map canvas coords → original image coords
+    const sx = sel.x / cv.width  * origImg.width;
+    const sy = sel.y / cv.height * origImg.height;
+    const sw = sel.w / cv.width  * origImg.width;
+    const sh = sel.h / cv.height * origImg.height;
+    // Scale up for OCR
+    const TARGET = 900;
     const scale  = sw < TARGET ? TARGET / sw : 1;
-    const dw = Math.round(sw * scale);
-    const dh = Math.round(sh * scale);
-
-    const c = document.createElement("canvas");
-    c.width = dw; c.height = dh;
-    c.getContext("2d").drawImage(origImg, sx, sy, sw, sh, 0, 0, dw, dh);
-    return c;
+    const out = document.createElement("canvas");
+    out.width  = Math.round(sw * scale);
+    out.height = Math.round(sh * scale);
+    out.getContext("2d").drawImage(origImg, sx, sy, sw, sh, 0, 0, out.width, out.height);
+    return out;
   }
 
-  // ── Levenshtein fuzzy match ───────────────────────────────────────────────
-  function lev(a, b) {
-    const m = a.length, n = b.length;
-    const dp = Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));
-    for(let i=1;i<=m;i++) for(let j=1;j<=n;j++)
-      dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
-    return dp[m][n];
-  }
-  function fuzzyMatch(det, parts) {
-    if (parts.includes(det)) return { match: det, exact: true };
-    let best = null, dist = 3;
-    for (const p of parts) { const d = lev(det, p); if (d < dist) { dist = d; best = p; } }
-    return best ? { match: best, exact: false, dist } : null;
-  }
+  // ── Fuzzy match ───────────────────────────────────────────────────────────
+  function lev(a,b){const m=a.length,n=b.length,dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);return dp[m][n];}
+  function fuzzyMatch(det,parts){if(parts.includes(det))return{match:det,exact:true};let best=null,dist=3;for(const p of parts){const d=lev(det,p);if(d<dist){dist=d;best=p;}}return best?{match:best,exact:false,dist}:null;}
 
   // ── Scan ──────────────────────────────────────────────────────────────────
   async function scanImage() {
     if (!origImg || !worker) return;
 
+    const crop = extractCrop();
+    if (!crop) {
+      alert("Please drag over the label area first, then tap Scan Label.");
+      return;
+    }
+
     const badge = document.getElementById("badge");
     document.getElementById("result").style.display = "block";
-    badge.className = "badge scanning";
-    badge.textContent = "Scanning…";
+    badge.className = "badge scanning"; badge.textContent = "Scanning…";
     document.getElementById("progFill").style.width = "0";
     document.getElementById("detected").textContent = "—";
     document.getElementById("rawText").textContent = "";
     document.getElementById("fuzzyNote").style.display = "none";
     document.getElementById("btnScan").disabled = true;
 
-    // Use cropped region if selection exists, otherwise full image
-    const region = extractRegion();
-    const source = region || (() => {
-      const c = document.createElement("canvas");
-      c.width = origImg.width; c.height = origImg.height;
-      c.getContext("2d").drawImage(origImg, 0, 0);
-      return c;
-    })();
-
     try {
-      const { data } = await worker.recognize(source);
-      const raw = data.text.trim();
+      const {data} = await worker.recognize(crop);
+      const raw    = data.text.trim();
       const tokens = raw.toUpperCase().match(/[A-Z0-9][A-Z0-9_\-\.]{2,}/g) || [];
-      const best  = tokens.length ? tokens.reduce((a,b) => b.length > a.length ? b : a) : raw.toUpperCase().trim();
+      const best   = tokens.length ? tokens.reduce((a,b)=>b.length>a.length?b:a) : raw.toUpperCase().trim();
 
       document.getElementById("progFill").style.width = "100%";
       document.getElementById("rawText").textContent  = raw || "(nothing detected)";
@@ -299,40 +269,27 @@
 
       const match = fuzzyMatch(best, cachedParts);
       if (match) {
-        badge.className = "badge pass"; badge.textContent = "✓ PASS";
+        badge.className="badge pass"; badge.textContent="✓ PASS";
         if (!match.exact) {
           const n = document.getElementById("fuzzyNote");
-          n.style.display = "block";
-          n.textContent = `⚠ Fuzzy match: "${best}" → "${match.match}" (${match.dist} char diff)`;
+          n.style.display="block";
+          n.textContent=`⚠ Fuzzy match: "${best}" → "${match.match}" (${match.dist} char diff)`;
         }
       } else {
-        badge.className = "badge fail"; badge.textContent = "✗ FAIL";
+        badge.className="badge fail"; badge.textContent="✗ FAIL";
       }
     } catch(err) {
-      badge.className = "badge fail"; badge.textContent = "Error";
-      document.getElementById("detected").textContent = err.message;
+      badge.className="badge fail"; badge.textContent="Error";
+      document.getElementById("detected").textContent=err.message;
     }
     document.getElementById("btnScan").disabled = false;
   }
 
   // ── Parts list ────────────────────────────────────────────────────────────
-  async function toggleParts() {
-    const l = document.getElementById("partsList");
-    if (l.style.display === "block") { l.style.display = "none"; return; }
-    l.style.display = "block"; renderParts();
-  }
-  function renderParts() {
-    document.getElementById("partsUl").innerHTML = cachedParts.length
-      ? cachedParts.map(p=>`<li>${p}</li>`).join("") : "<li>No parts loaded</li>";
-  }
-  async function addPart() {
-    const inp = document.getElementById("newPart");
-    const pn  = inp.value.trim().toUpperCase(); if (!pn) return;
-    try { await fetch("/parts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({part_number:pn})}); } catch {}
-    if (!cachedParts.includes(pn)) { cachedParts.push(pn); cachedParts.sort(); }
-    inp.value = ""; renderParts();
-  }
-  document.getElementById("newPart").addEventListener("keydown", e => { if(e.key==="Enter") addPart(); });
+  async function toggleParts(){const l=document.getElementById("partsList");if(l.style.display==="block"){l.style.display="none";return;}l.style.display="block";renderParts();}
+  function renderParts(){document.getElementById("partsUl").innerHTML=cachedParts.length?cachedParts.map(p=>`<li>${p}</li>`).join(""):"<li>No parts loaded</li>";}
+  async function addPart(){const inp=document.getElementById("newPart");const pn=inp.value.trim().toUpperCase();if(!pn)return;try{await fetch("/parts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({part_number:pn})});}catch{}if(!cachedParts.includes(pn)){cachedParts.push(pn);cachedParts.sort();}inp.value="";renderParts();}
+  document.getElementById("newPart").addEventListener("keydown",e=>{if(e.key==="Enter")addPart();});
 </script>
 </body>
 </html>
