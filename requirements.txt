@@ -2,3 +2,4 @@ flask>=3.0
 pillow>=10.0
 gunicorn>=21.0
 google-generativeai>=0.8.0
+openpyxl>=3.1
