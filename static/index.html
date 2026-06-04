@@ -99,11 +99,11 @@
   <h1>🔍 Bundle Inspection OCR</h1>
   <p class="sub">Select category → take photo → drag label → Scan</p>
 
-  <!-- Category selector -->
+  <!-- File selector -->
   <div class="cat-bar">
-    <label>Category:</label>
+    <label>File:</label>
     <select id="catSelect" onchange="onCatChange()">
-      <option value="">— All categories —</option>
+      <option value="">— Select uploaded file —</option>
     </select>
   </div>
 
@@ -169,12 +169,15 @@
   const ctx = cv.getContext("2d");
   let origImg = null, sel = null, drag = null;
   let worker  = null;
-  let categories = [];   // [{id, name}]
-  let activeCatId = "";  // currently selected category for scanning
+  let categories = [];   // [{id, name}] — for parts panel
+  let uploads    = [];   // [{id, filename, ...}] — for file dropdown
+  let activeCatId  = "";   // selected category id (parts panel)
+  let activeUploadId = ""; // selected upload/file id (scan validation)
 
   // ── Init ──────────────────────────────────────────────────────────────────
   async function init() {
     drawPlaceholder();
+    await loadUploads();
     await loadCategories();
     worker = await Tesseract.createWorker("eng", 1, {
       logger: m => {
@@ -192,32 +195,48 @@
     ctx.fillText("Tap 📷 Camera to take a photo", cv.width/2, cv.height/2);
   }
 
-  // ── Categories ────────────────────────────────────────────────────────────
+  // ── Uploads dropdown (file selector for scanning) ─────────────────────────
+  async function loadUploads() {
+    try {
+      const r = await fetch("/uploads");
+      uploads = await r.json();
+    } catch { uploads = []; }
+    populateFileDropdown();
+  }
+
+  function populateFileDropdown() {
+    const sel = document.getElementById("catSelect");
+    sel.innerHTML = `<option value="">— Select uploaded file —</option>` +
+      uploads.map(u => `<option value="${u.id}">${u.filename} (${u.imported_count} parts)</option>`).join("");
+    if (activeUploadId) sel.value = activeUploadId;
+    if (uploads.length === 1 && !activeUploadId) {
+      activeUploadId = String(uploads[0].id);
+      sel.value = activeUploadId;
+    }
+    // Update subtitle
+    const active = uploads.find(u => String(u.id) === String(activeUploadId));
+    document.querySelector(".sub").textContent = active
+      ? `File: ${active.filename} — take photo → drag label → Scan`
+      : "Select uploaded file → take photo → drag label → Scan";
+  }
+
+  function onCatChange() {
+    activeUploadId = document.getElementById("catSelect").value;
+    const active = uploads.find(u => String(u.id) === String(activeUploadId));
+    document.querySelector(".sub").textContent = active
+      ? `File: ${active.filename} — take photo → drag label → Scan`
+      : "Select uploaded file → take photo → drag label → Scan";
+  }
+
+  // ── Categories (for parts management panel only) ──────────────────────────
   async function loadCategories() {
     try {
       const r = await fetch("/categories");
       categories = await r.json();
     } catch { categories = []; }
-    populateCatDropdowns();
-  }
-
-  function populateCatDropdowns() {
-    // Group categories by upload filename for better UX
     const opts = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
-    document.getElementById("catSelect").innerHTML =
-      `<option value="">— Select category —</option>` + opts;
     document.getElementById("panelCatSel").innerHTML =
       `<option value="">— select category —</option>` + opts;
-    if (activeCatId) document.getElementById("catSelect").value = activeCatId;
-    // Auto-select if only one category
-    if (categories.length === 1 && !activeCatId) {
-      activeCatId = String(categories[0].id);
-      document.getElementById("catSelect").value = activeCatId;
-    }
-  }
-
-  function onCatChange() {
-    activeCatId = document.getElementById("catSelect").value;
   }
 
   async function addCategory() {
@@ -290,9 +309,9 @@
       status.style.color = "#4ade80";
       status.textContent = `✅ Imported ${data.imported} part numbers`;
       if (data.errors?.length) status.textContent += ` (${data.errors.length} skipped)`;
+      await loadUploads();
       await loadCategories();
       await loadPanelParts();
-      // Refresh history if open
       if (document.getElementById("historyList").style.display === "block") renderHistory();
     } catch(err) {
       status.style.color = "#f87171";
@@ -316,39 +335,39 @@
       const r       = await fetch("/uploads");
       const uploads = await r.json();
       if (!uploads.length) { l.innerHTML = "<p style='color:#475569;font-size:.8rem'>No files uploaded yet.</p>"; return; }
-      l.innerHTML = uploads.map(u => `
-        <div class="upload-card" id="ucard-${u.id}">
+      l.innerHTML = uploads.map(u => {
+        const isActive = String(u.id) === String(activeUploadId);
+        return `
+        <div class="upload-card" id="ucard-${u.id}" style="${isActive?'border:1px solid #0ea5e9':''}">
           <div class="upload-card-head">
-            <div>
-              <div class="upload-filename">📄 ${u.filename}</div>
-              <div class="upload-meta">${u.uploaded_at} · ${u.imported_count} part numbers</div>
+            <div style="flex:1;cursor:pointer" onclick="selectUploadFromHistory(${u.id})">
+              <div class="upload-filename">📄 ${u.filename}
+                ${isActive ? '<span style="color:#0ea5e9;font-size:.7rem;margin-left:6px">✓ Active</span>' : ''}
+              </div>
+              <div class="upload-meta">${u.uploaded_at} · ${u.imported_count} parts
+                ${u.categories.length ? ' · ' + u.categories.join(', ') : ''}
+              </div>
             </div>
             <button class="upload-del" onclick="deleteUpload(${u.id})">🗑 Delete</button>
           </div>
-          <div class="upload-cats">
-            ${u.categories.map(c => {
-              const catObj = categories.find(x => x.name === c);
-              const catId  = catObj ? catObj.id : "";
-              const isActive = catId && String(catId) === String(activeCatId);
-              return `<span class="cat-chip${isActive?' active':''}"
-                onclick="selectCatFromHistory('${catId}','${c}')">${c}</span>`;
-            }).join("") || "<span style='color:#475569;font-size:.72rem'>No categories</span>"}
-          </div>
-        </div>`).join("");
+        </div>`;
+      }).join("");
     } catch { l.innerHTML = "<p style='color:#f87171;font-size:.8rem'>Error loading history</p>"; }
   }
 
-  function selectCatFromHistory(catId, catName) {
-    activeCatId = catId;
-    document.getElementById("catSelect").value = catId;
-    renderHistory(); // refresh chip highlight
-    // Show feedback
-    document.querySelector(".sub").textContent = `Category: ${catName} — take photo → drag label → Scan`;
+  function selectUploadFromHistory(uploadId) {
+    activeUploadId = String(uploadId);
+    document.getElementById("catSelect").value = uploadId;
+    const u = uploads.find(x => String(x.id) === String(uploadId));
+    if (u) document.querySelector(".sub").textContent = `File: ${u.filename} — take photo → drag label → Scan`;
+    renderHistory();
   }
 
   async function deleteUpload(uploadId) {
-    if (!confirm("Delete this file and all its categories/parts?")) return;
+    if (!confirm("Delete this file and all its parts?")) return;
     await fetch(`/uploads/${uploadId}`, { method:"DELETE" });
+    if (String(activeUploadId) === String(uploadId)) { activeUploadId = ""; }
+    await loadUploads();
     await loadCategories();
     renderHistory();
   }
@@ -434,7 +453,7 @@
 
   async function getApprovedParts() {
     try {
-      const url = activeCatId ? `/parts?category_id=${activeCatId}` : "/parts";
+      const url = activeUploadId ? `/parts?upload_id=${activeUploadId}` : "/parts";
       const r = await fetch(url);
       return await r.json(); // [{label_text, part_number}, ...]
     } catch { return []; }
