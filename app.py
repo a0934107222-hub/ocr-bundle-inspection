@@ -155,9 +155,18 @@ def delete_category(cat_id):
 
 @app.route("/parts", methods=["GET"])
 def list_parts():
-    cat_id = request.args.get("category_id")
+    cat_id   = request.args.get("category_id")
+    upload_id = request.args.get("upload_id")
     with get_db() as conn:
-        if cat_id:
+        if upload_id:
+            rows = conn.execute("""
+                SELECT p.label_text, p.part_number
+                FROM parts p
+                JOIN categories c ON p.category_id = c.id
+                WHERE c.upload_id = ?
+                ORDER BY p.label_text
+            """, (upload_id,)).fetchall()
+        elif cat_id:
             rows = conn.execute(
                 "SELECT label_text, part_number FROM parts WHERE category_id=? ORDER BY label_text",
                 (cat_id,)
@@ -271,20 +280,20 @@ def ocr():
     tokens = re.findall(r"[A-Z0-9][A-Z0-9_\-\.]{2,}", text.upper())
     best   = max(tokens, key=len) if tokens else text.strip().upper()
 
-    cat_id = request.form.get("category_id")
+    upload_id = request.form.get("upload_id")
     with get_db() as conn:
-        if cat_id:
-            row = conn.execute(
-                "SELECT label_text, part_number FROM parts WHERE category_id=? AND label_text=?",
-                (cat_id, best)
-            ).fetchone()
+        if upload_id:
+            row = conn.execute("""
+                SELECT p.label_text, p.part_number FROM parts p
+                JOIN categories c ON p.category_id = c.id
+                WHERE c.upload_id = ? AND p.label_text = ?
+            """, (upload_id, best)).fetchone()
         else:
             row = conn.execute(
                 "SELECT label_text, part_number FROM parts WHERE label_text=?", (best,)
             ).fetchone()
     passed = row is not None
     matched_pn = row["part_number"] if row else None
-
     return jsonify({"raw_text": text, "detected": best, "passed": passed, "part_number": matched_pn})
 
 
