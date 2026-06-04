@@ -24,12 +24,16 @@
     #selInfo{font-size:.7rem;color:#64748b;margin-top:5px;width:100%;max-width:480px;text-align:center;min-height:1.1em}
 
     .btn-row{display:flex;gap:7px;margin-top:10px;width:100%;max-width:480px;flex-wrap:wrap}
-    button{flex:1;padding:12px 8px;border:none;border-radius:11px;font-size:.88rem;font-weight:600;cursor:pointer;transition:opacity .15s;min-width:60px}
+    button{border:none;border-radius:11px;font-size:.88rem;font-weight:600;cursor:pointer;transition:opacity .15s;}
     button:active{opacity:.75}
-    #btnCamera{background:#6366f1;color:#fff}
-    #btnClear{background:#334155;color:#94a3b8;flex:0;padding:12px 12px}
-    #btnScan{background:#0ea5e9;color:#fff}
+    /* ── sticky action bar ── */
+    #actionBar{position:fixed;bottom:0;left:0;right:0;display:flex;gap:8px;padding:10px 16px 20px;background:#0f172a;border-top:1px solid #1e293b;z-index:100}
+    #btnCamera{flex:1;padding:13px;background:#6366f1;color:#fff}
+    #btnClear{flex:0;padding:13px 14px;background:#334155;color:#94a3b8}
+    #btnScan{flex:1;padding:13px;background:#0ea5e9;color:#fff}
     #btnScan:disabled{background:#1e3a4a;color:#475569;cursor:default}
+    /* bottom padding so content isn't hidden behind bar */
+    body{padding-bottom:90px !important}
 
     /* result */
     #result{margin-top:12px;width:100%;max-width:480px;background:#1e293b;border-radius:14px;padding:16px;display:none}
@@ -109,11 +113,6 @@
   <input type="file" id="fileInput" accept="image/*" capture="environment"/>
   <input type="file" id="xlsInput" accept=".xlsx,.xls"/>
 
-  <div class="btn-row">
-    <button id="btnCamera" onclick="document.getElementById('fileInput').click()">📷 Camera</button>
-    <button id="btnClear" onclick="clearSel()">✕</button>
-    <button id="btnScan" disabled onclick="scanImage()">Scan Label</button>
-  </div>
 
   <div id="result">
     <div class="progress-bar"><div class="progress-fill" id="progFill"></div></div>
@@ -157,6 +156,13 @@
     </div>
   </div>
 
+  <!-- Fixed action bar at bottom -->
+  <div id="actionBar">
+    <button id="btnCamera" onclick="document.getElementById('fileInput').click()">📷 Camera</button>
+    <button id="btnClear" onclick="clearSel()">✕</button>
+    <button id="btnScan" disabled onclick="scanImage()">Scan Label</button>
+  </div>
+
 <script>
   // ── State ─────────────────────────────────────────────────────────────────
   const cv  = document.getElementById("canvas");
@@ -196,13 +202,18 @@
   }
 
   function populateCatDropdowns() {
+    // Group categories by upload filename for better UX
     const opts = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
     document.getElementById("catSelect").innerHTML =
-      `<option value="">— All categories —</option>` + opts;
+      `<option value="">— Select category —</option>` + opts;
     document.getElementById("panelCatSel").innerHTML =
       `<option value="">— select category —</option>` + opts;
-    // restore selection
     if (activeCatId) document.getElementById("catSelect").value = activeCatId;
+    // Auto-select if only one category
+    if (categories.length === 1 && !activeCatId) {
+      activeCatId = String(categories[0].id);
+      document.getElementById("catSelect").value = activeCatId;
+    }
   }
 
   function onCatChange() {
@@ -413,16 +424,10 @@
     return out;
   }
 
-  // ── Preprocess: grayscale + contrast boost, no threshold ─────────────────
-  // Threshold was turning white labels all-white. Simple contrast is safer.
-  function preprocess(src) {
-    const c=document.createElement("canvas"); c.width=src.width; c.height=src.height;
-    const cx=c.getContext("2d");
-    // Boost contrast via CSS filter before reading pixels
-    cx.filter="contrast(1.8) grayscale(1)";
-    cx.drawImage(src,0,0);
-    return c;
-  }
+  // ── Preprocess: just return the crop as-is ───────────────────────────────
+  // Tesseract.js handles contrast internally. Don't transform — any
+  // transform risk making the image unreadable on mobile browsers.
+  function preprocess(src) { return src; }
 
   // ── Fuzzy match ───────────────────────────────────────────────────────────
   function lev(a,b){const m=a.length,n=b.length,dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);return dp[m][n];}
