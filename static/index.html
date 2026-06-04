@@ -355,15 +355,11 @@
   }
 
   function fuzzyMatch(det, parts) {
-    // parts = [{label_text, part_number}]
+    // Exact match only — any mismatch = FAIL
+    // Part numbers like X10 vs X12 must not be confused in factory inspection
     const exact = parts.find(p => p.label_text === det);
     if (exact) return {match: exact.label_text, part_number: exact.part_number, exact: true};
-    let best=null, dist=3;
-    for(const p of parts){
-      const d=lev(det, p.label_text);
-      if(d<dist){dist=d; best=p;}
-    }
-    return best ? {match: best.label_text, part_number: best.part_number, exact:false, dist} : null;
+    return null;
   }
 
   // ── Scan ──────────────────────────────────────────────────────────────────
@@ -405,13 +401,17 @@
       if(match){
         badge.className="badge pass"; badge.textContent="✓ PASS";
         document.getElementById("detected").textContent = match.part_number || best;
-        if(!match.exact){
-          const n=document.getElementById("fuzzyNote");
-          n.style.display="block";
-          n.textContent=`⚠ OCR read "${best}", matched label "${match.match}" → PN: ${match.part_number}`;
-        }
       } else {
         badge.className="badge fail"; badge.textContent="✗ FAIL";
+        // Show closest label for debugging (but it's still a FAIL)
+        const closest = parts.reduce((a,p) => {
+          const d=lev(best,p.label_text); return d<a.dist?{p,dist:d}:a;
+        }, {p:null,dist:999});
+        if(closest.p && closest.dist <= 4){
+          const n=document.getElementById("fuzzyNote");
+          n.style.display="block";
+          n.textContent=`ℹ Closest in list: "${closest.p.label_text}" — but not a match`;
+        }
       }
     } catch(err){
       badge.className="badge fail"; badge.textContent="Error";
