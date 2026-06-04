@@ -205,10 +205,14 @@
     const ul    = document.getElementById("partsUl");
     if (!catId) { ul.innerHTML = "<li style='color:#475569'>Select a category above</li>"; return; }
     try {
-      const r    = await fetch(`/parts?category_id=${catId}`);
+      const r     = await fetch(`/parts?category_id=${catId}`);
       const parts = await r.json();
       ul.innerHTML = parts.length
-        ? parts.map(p => `<li><span>${p}</span><button onclick="deletePart('${p}',${catId})">✕</button></li>`).join("")
+        ? parts.map(p => `
+            <li>
+              <span>${p.label_text}${p.part_number !== p.label_text ? ' → <b>'+p.part_number+'</b>' : ''}</span>
+              <button onclick="deletePart('${p.label_text}',${catId})">✕</button>
+            </li>`).join("")
         : "<li style='color:#475569'>No parts yet — add one below</li>";
     } catch { ul.innerHTML = "<li style='color:#f87171'>Error loading parts</li>"; }
   }
@@ -343,19 +347,23 @@
   function lev(a,b){const m=a.length,n=b.length,dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);return dp[m][n];}
 
   async function getApprovedParts() {
-    const catId = activeCatId;
     try {
-      const url = catId ? `/parts?category_id=${catId}` : "/parts";
+      const url = activeCatId ? `/parts?category_id=${activeCatId}` : "/parts";
       const r = await fetch(url);
-      return await r.json();
+      return await r.json(); // [{label_text, part_number}, ...]
     } catch { return []; }
   }
 
   function fuzzyMatch(det, parts) {
-    if (parts.includes(det)) return {match:det,exact:true};
-    let best=null,dist=3;
-    for(const p of parts){const d=lev(det,p);if(d<dist){dist=d;best=p;}}
-    return best?{match:best,exact:false,dist}:null;
+    // parts = [{label_text, part_number}]
+    const exact = parts.find(p => p.label_text === det);
+    if (exact) return {match: exact.label_text, part_number: exact.part_number, exact: true};
+    let best=null, dist=3;
+    for(const p of parts){
+      const d=lev(det, p.label_text);
+      if(d<dist){dist=d; best=p;}
+    }
+    return best ? {match: best.label_text, part_number: best.part_number, exact:false, dist} : null;
   }
 
   // ── Scan ──────────────────────────────────────────────────────────────────
@@ -396,7 +404,12 @@
       const match = fuzzyMatch(best, parts);
       if(match){
         badge.className="badge pass"; badge.textContent="✓ PASS";
-        if(!match.exact){const n=document.getElementById("fuzzyNote");n.style.display="block";n.textContent=`⚠ Fuzzy: "${best}" → "${match.match}" (${match.dist} diff)`;}
+        document.getElementById("detected").textContent = match.part_number || best;
+        if(!match.exact){
+          const n=document.getElementById("fuzzyNote");
+          n.style.display="block";
+          n.textContent=`⚠ OCR read "${best}", matched label "${match.match}" → PN: ${match.part_number}`;
+        }
       } else {
         badge.className="badge fail"; badge.textContent="✗ FAIL";
       }
