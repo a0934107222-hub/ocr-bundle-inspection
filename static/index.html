@@ -8,52 +8,88 @@
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px}
-    h1{font-size:1.3rem;font-weight:700;margin-bottom:4px;color:#f8fafc}
-    .sub{font-size:.8rem;color:#94a3b8;margin-bottom:16px;text-align:center}
+    h1{font-size:1.3rem;font-weight:700;margin-bottom:2px;color:#f8fafc}
+    .sub{font-size:.78rem;color:#94a3b8;margin-bottom:14px;text-align:center}
+
+    /* category bar */
+    .cat-bar{width:100%;max-width:480px;display:flex;gap:8px;margin-bottom:12px;align-items:center}
+    .cat-bar label{font-size:.75rem;color:#64748b;white-space:nowrap}
+    #catSelect{flex:1;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:9px 10px;color:#f8fafc;font-size:.88rem}
+    #catSelect:focus{outline:1px solid #6366f1}
+
+    /* canvas */
     #canvas{width:100%;max-width:480px;border-radius:14px;display:block;touch-action:none;cursor:crosshair;background:#1e293b;border:2px dashed #334155}
-    #fileInput{display:none}
-    .hint{font-size:.75rem;color:#7dd3fc;background:#1e3a5f;border-radius:8px;padding:7px 12px;margin-top:8px;width:100%;max-width:480px;text-align:center}
-    .btn-row{display:flex;gap:8px;margin-top:10px;width:100%;max-width:480px}
-    button{flex:1;padding:13px;border:none;border-radius:12px;font-size:.93rem;font-weight:600;cursor:pointer;transition:opacity .15s}
+    #fileInput,#xlsInput{display:none}
+    .hint{font-size:.73rem;color:#7dd3fc;background:#1e3a5f;border-radius:8px;padding:6px 12px;margin-top:8px;width:100%;max-width:480px;text-align:center}
+    #selInfo{font-size:.7rem;color:#64748b;margin-top:5px;width:100%;max-width:480px;text-align:center;min-height:1.1em}
+
+    .btn-row{display:flex;gap:7px;margin-top:10px;width:100%;max-width:480px;flex-wrap:wrap}
+    button{flex:1;padding:12px 8px;border:none;border-radius:11px;font-size:.88rem;font-weight:600;cursor:pointer;transition:opacity .15s;min-width:60px}
     button:active{opacity:.75}
     #btnCamera{background:#6366f1;color:#fff}
-    #btnClear{background:#334155;color:#94a3b8;flex:0;padding:13px 14px}
+    #btnClear{background:#334155;color:#94a3b8;flex:0;padding:12px 12px}
     #btnScan{background:#0ea5e9;color:#fff}
     #btnScan:disabled{background:#1e3a4a;color:#475569;cursor:default}
-    #selInfo{font-size:.72rem;color:#64748b;margin-top:6px;width:100%;max-width:480px;text-align:center;min-height:1.2em}
-    #result{margin-top:14px;width:100%;max-width:480px;background:#1e293b;border-radius:14px;padding:18px;display:none}
-    .badge{display:inline-block;padding:4px 14px;border-radius:99px;font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px}
+
+    /* result */
+    #result{margin-top:12px;width:100%;max-width:480px;background:#1e293b;border-radius:14px;padding:16px;display:none}
+    .badge{display:inline-block;padding:4px 14px;border-radius:99px;font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
     .badge.pass{background:#14532d;color:#4ade80}
     .badge.fail{background:#4c0519;color:#f87171}
     .badge.scanning{background:#1e3a5f;color:#7dd3fc}
-    .progress-bar{width:100%;height:4px;background:#0f172a;border-radius:2px;margin-bottom:12px;overflow:hidden}
+    .progress-bar{width:100%;height:4px;background:#0f172a;border-radius:2px;margin-bottom:10px;overflow:hidden}
     .progress-fill{height:100%;background:#0ea5e9;border-radius:2px;transition:width .2s;width:0}
-    .rl{font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
-    .rv{font-size:1.25rem;font-weight:700;color:#f8fafc;margin-bottom:12px;word-break:break-all}
-    .raw{background:#0f172a;border-radius:8px;padding:10px;font-size:.75rem;color:#64748b;white-space:pre-wrap;font-family:monospace;max-height:90px;overflow-y:auto}
-    .fuzzy{font-size:.72rem;color:#f59e0b;margin-top:6px;display:none}
-    #partsSection{margin-top:14px;width:100%;max-width:480px}
-    #toggleParts{background:#1e293b;color:#94a3b8;border-radius:10px;font-size:.83rem;padding:10px 16px;width:100%;text-align:left}
-    #partsList{display:none;background:#1e293b;border-radius:10px;margin-top:8px;padding:12px 16px}
-    #partsList li{list-style:none;font-size:.83rem;font-family:monospace;padding:5px 0;border-bottom:1px solid #0f172a;color:#cbd5e1}
-    #partsList li:last-child{border-bottom:none}
-    .add-row{display:flex;gap:8px;margin-top:10px}
-    .add-row input{flex:1;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:8px 10px;color:#f8fafc;font-size:.83rem;font-family:monospace;text-transform:uppercase}
-    .add-row button{flex:0;padding:8px 12px;font-size:.83rem;background:#6366f1;color:#fff;border-radius:8px}
+    .rl{font-size:.68rem;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
+    .rv{font-size:1.2rem;font-weight:700;color:#f8fafc;margin-bottom:10px;word-break:break-all}
+    .raw{background:#0f172a;border-radius:8px;padding:9px;font-size:.73rem;color:#64748b;white-space:pre-wrap;font-family:monospace;max-height:80px;overflow-y:auto}
+    .fuzzy{font-size:.7rem;color:#f59e0b;margin-top:5px;display:none}
+
+    /* parts manager */
+    #partsSection{margin-top:12px;width:100%;max-width:480px}
+    .section-head{display:flex;gap:8px;align-items:center}
+    #toggleParts{flex:1;background:#1e293b;color:#94a3b8;border-radius:10px;font-size:.83rem;padding:10px 14px;text-align:left}
+    #btnImport{flex:0;background:#059669;color:#fff;border-radius:10px;font-size:.78rem;padding:10px 12px;white-space:nowrap}
+    #partsList{display:none;background:#1e293b;border-radius:10px;margin-top:8px;padding:14px}
+
+    /* category management inside parts panel */
+    .panel-row{display:flex;gap:8px;margin-bottom:10px;align-items:center}
+    .panel-row label{font-size:.73rem;color:#64748b;white-space:nowrap}
+    #panelCatSel{flex:1;background:#0f172a;border:1px solid #334155;border-radius:7px;padding:7px 8px;color:#f8fafc;font-size:.82rem}
+    #btnAddCat{flex:0;padding:7px 10px;font-size:.78rem;background:#6366f1;color:#fff;border-radius:7px}
+
+    #partsUl{list-style:none;max-height:180px;overflow-y:auto;margin-bottom:10px}
+    #partsUl li{display:flex;justify-content:space-between;align-items:center;font-size:.82rem;font-family:monospace;padding:5px 0;border-bottom:1px solid #0f172a;color:#cbd5e1}
+    #partsUl li:last-child{border-bottom:none}
+    #partsUl li button{flex:0;background:#4c0519;color:#f87171;border-radius:6px;padding:2px 8px;font-size:.7rem;min-width:0}
+
+    .add-row{display:flex;gap:7px;margin-top:4px}
+    .add-row input{flex:1;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:8px 10px;color:#f8fafc;font-size:.82rem;font-family:monospace;text-transform:uppercase}
+    .add-row button{flex:0;padding:8px 12px;font-size:.82rem;background:#6366f1;color:#fff;border-radius:8px}
+
+    .import-status{font-size:.73rem;color:#4ade80;margin-top:6px;display:none}
   </style>
 </head>
 <body>
   <h1>🔍 Bundle Inspection OCR</h1>
-  <p class="sub">Take photo → drag on label → Scan</p>
+  <p class="sub">Select category → take photo → drag label → Scan</p>
 
-  <canvas id="canvas" width="480" height="320"></canvas>
+  <!-- Category selector -->
+  <div class="cat-bar">
+    <label>Category:</label>
+    <select id="catSelect" onchange="onCatChange()">
+      <option value="">— All categories —</option>
+    </select>
+  </div>
+
+  <canvas id="canvas" width="480" height="300"></canvas>
   <div class="hint">✏️ Drag your finger over the white label to select it</div>
+  <div id="selInfo">Take a photo first</div>
   <input type="file" id="fileInput" accept="image/*" capture="environment"/>
-  <div id="selInfo">No selection — tap canvas after photo to select label</div>
+  <input type="file" id="xlsInput" accept=".xlsx,.xls"/>
 
   <div class="btn-row">
     <button id="btnCamera" onclick="document.getElementById('fileInput').click()">📷 Camera</button>
-    <button id="btnClear" onclick="clearSel()">✕ Clear</button>
+    <button id="btnClear" onclick="clearSel()">✕</button>
     <button id="btnScan" disabled onclick="scanImage()">Scan Label</button>
   </div>
 
@@ -67,31 +103,45 @@
     <div class="raw" id="rawText"></div>
   </div>
 
+  <!-- Parts manager -->
   <div id="partsSection">
-    <button id="toggleParts" onclick="toggleParts()">📋 Approved Parts List ▾</button>
+    <div class="section-head">
+      <button id="toggleParts" onclick="toggleParts()">📋 Parts List ▾</button>
+      <button id="btnImport" onclick="document.getElementById('xlsInput').click()">⬆ Import Excel</button>
+    </div>
     <div id="partsList">
-      <ul id="partsUl"></ul>
+      <!-- Category management -->
+      <div class="panel-row">
+        <label>Manage:</label>
+        <select id="panelCatSel" onchange="loadPanelParts()">
+          <option value="">— select category —</option>
+        </select>
+        <button id="btnAddCat" onclick="addCategory()">+ New</button>
+      </div>
+
+      <ul id="partsUl"><li style="color:#475569">Select a category above</li></ul>
+
       <div class="add-row">
-        <input type="text" id="newPart" placeholder="ADD NEW PART NUMBER"/>
+        <input type="text" id="newPart" placeholder="ADD PART NUMBER"/>
         <button onclick="addPart()">Add</button>
       </div>
+      <div class="import-status" id="importStatus"></div>
     </div>
   </div>
 
 <script>
-  const cv   = document.getElementById("canvas");
-  const ctx  = cv.getContext("2d");
-  let origImg  = null;   // full-res Image element
-  let dispRect = null;   // canvas bounding rect (updated on each interaction)
-  let sel      = null;   // {x,y,w,h} in CANVAS display pixels
-  let drag     = null;   // drag start in canvas pixels
-  let worker   = null;
-  let cachedParts = [];
+  // ── State ─────────────────────────────────────────────────────────────────
+  const cv  = document.getElementById("canvas");
+  const ctx = cv.getContext("2d");
+  let origImg = null, sel = null, drag = null;
+  let worker  = null;
+  let categories = [];   // [{id, name}]
+  let activeCatId = "";  // currently selected category for scanning
 
   // ── Init ──────────────────────────────────────────────────────────────────
   async function init() {
     drawPlaceholder();
-    try { const r = await fetch("/parts"); cachedParts = await r.json(); } catch {}
+    await loadCategories();
     worker = await Tesseract.createWorker("eng", 1, {
       logger: m => {
         if (m.status === "recognizing text")
@@ -103,24 +153,121 @@
   init();
 
   function drawPlaceholder() {
-    ctx.fillStyle = "#1e293b";
-    ctx.fillRect(0,0,cv.width,cv.height);
-    ctx.fillStyle = "#475569";
-    ctx.font = "16px sans-serif";
-    ctx.textAlign = "center";
+    ctx.fillStyle = "#1e293b"; ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.fillStyle = "#475569"; ctx.font = "15px sans-serif"; ctx.textAlign = "center";
     ctx.fillText("Tap 📷 Camera to take a photo", cv.width/2, cv.height/2);
   }
 
-  // ── Load photo ────────────────────────────────────────────────────────────
+  // ── Categories ────────────────────────────────────────────────────────────
+  async function loadCategories() {
+    try {
+      const r = await fetch("/categories");
+      categories = await r.json();
+    } catch { categories = []; }
+    populateCatDropdowns();
+  }
+
+  function populateCatDropdowns() {
+    const opts = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+    document.getElementById("catSelect").innerHTML =
+      `<option value="">— All categories —</option>` + opts;
+    document.getElementById("panelCatSel").innerHTML =
+      `<option value="">— select category —</option>` + opts;
+    // restore selection
+    if (activeCatId) document.getElementById("catSelect").value = activeCatId;
+  }
+
+  function onCatChange() {
+    activeCatId = document.getElementById("catSelect").value;
+  }
+
+  async function addCategory() {
+    const name = prompt("New category name:");
+    if (!name) return;
+    await fetch("/categories", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({name}) });
+    await loadCategories();
+    // select the new one in panel
+    const found = categories.find(c => c.name === name.trim());
+    if (found) { document.getElementById("panelCatSel").value = found.id; loadPanelParts(); }
+  }
+
+  // ── Parts panel ───────────────────────────────────────────────────────────
+  async function toggleParts() {
+    const l = document.getElementById("partsList");
+    if (l.style.display === "block") { l.style.display = "none"; return; }
+    l.style.display = "block";
+    await loadCategories();
+    if (activeCatId) { document.getElementById("panelCatSel").value = activeCatId; loadPanelParts(); }
+  }
+
+  async function loadPanelParts() {
+    const catId = document.getElementById("panelCatSel").value;
+    const ul    = document.getElementById("partsUl");
+    if (!catId) { ul.innerHTML = "<li style='color:#475569'>Select a category above</li>"; return; }
+    try {
+      const r    = await fetch(`/parts?category_id=${catId}`);
+      const parts = await r.json();
+      ul.innerHTML = parts.length
+        ? parts.map(p => `<li><span>${p}</span><button onclick="deletePart('${p}',${catId})">✕</button></li>`).join("")
+        : "<li style='color:#475569'>No parts yet — add one below</li>";
+    } catch { ul.innerHTML = "<li style='color:#f87171'>Error loading parts</li>"; }
+  }
+
+  async function addPart() {
+    const catId = document.getElementById("panelCatSel").value;
+    const pn    = document.getElementById("newPart").value.trim().toUpperCase();
+    if (!pn) return;
+    if (!catId) { alert("Please select a category first."); return; }
+    const cat = categories.find(c => c.id == catId);
+    await fetch("/parts", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ part_number: pn, category: cat ? cat.name : "General" })
+    });
+    document.getElementById("newPart").value = "";
+    await loadPanelParts();
+  }
+
+  async function deletePart(pn, catId) {
+    if (!confirm(`Remove ${pn}?`)) return;
+    await fetch(`/parts/${encodeURIComponent(pn)}?category_id=${catId}`, { method:"DELETE" });
+    await loadPanelParts();
+  }
+
+  document.getElementById("newPart").addEventListener("keydown", e => { if(e.key==="Enter") addPart(); });
+
+  // ── Excel import ──────────────────────────────────────────────────────────
+  document.getElementById("xlsInput").addEventListener("change", async e => {
+    const file = e.target.files[0]; if (!file) return;
+    const form = new FormData(); form.append("file", file);
+    const status = document.getElementById("importStatus");
+    status.style.display = "block"; status.style.color = "#7dd3fc";
+    status.textContent = "Importing…";
+    try {
+      const r    = await fetch("/upload-excel", { method:"POST", body: form });
+      const data = await r.json();
+      status.style.color = "#4ade80";
+      status.textContent = `✅ Imported ${data.imported} part numbers`;
+      if (data.errors?.length) status.textContent += ` (${data.errors.length} skipped)`;
+      await loadCategories();
+      await loadPanelParts();
+    } catch(err) {
+      status.style.color = "#f87171";
+      status.textContent = "Import failed: " + err.message;
+    }
+    e.target.value = "";
+  });
+
+  // ── Camera ────────────────────────────────────────────────────────────────
   document.getElementById("fileInput").addEventListener("change", e => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = ev => {
       const img = new Image();
       img.onload = () => {
-        origImg = img;
-        sel = null;
-        fitAndDraw();
+        origImg = img; sel = null;
+        const maxW = cv.offsetWidth || 480;
+        const scale = maxW / img.width;
+        cv.width = img.width * scale; cv.height = img.height * scale;
+        redraw();
         document.getElementById("btnScan").disabled = false;
         document.getElementById("result").style.display = "none";
         document.getElementById("selInfo").textContent = "Drag over the label to select it";
@@ -130,210 +277,135 @@
     reader.readAsDataURL(file);
   });
 
-  // Fit image into canvas maintaining aspect ratio
-  function fitAndDraw() {
-    const maxW = cv.offsetWidth  || 480;
-    const scale = maxW / origImg.width;
-    cv.width  = origImg.width  * scale;
-    cv.height = origImg.height * scale;
-    redraw();
-  }
-
+  // ── Canvas draw ───────────────────────────────────────────────────────────
   function redraw() {
     ctx.clearRect(0,0,cv.width,cv.height);
-    if (origImg) ctx.drawImage(origImg, 0, 0, cv.width, cv.height);
-    if (sel && sel.w > 2 && sel.h > 2) {
-      // dim outside
-      ctx.fillStyle = "rgba(0,0,0,0.50)";
-      ctx.fillRect(0, 0, cv.width, cv.height);
-      ctx.clearRect(sel.x, sel.y, sel.w, sel.h);
-      // redraw image in selection (so it shows through)
+    if (origImg) ctx.drawImage(origImg,0,0,cv.width,cv.height);
+    if (sel && sel.w>2 && sel.h>2) {
+      ctx.fillStyle="rgba(0,0,0,.5)"; ctx.fillRect(0,0,cv.width,cv.height);
       ctx.drawImage(origImg,
-        sel.x / cv.width * origImg.width,
-        sel.y / cv.height * origImg.height,
-        sel.w / cv.width * origImg.width,
-        sel.h / cv.height * origImg.height,
-        sel.x, sel.y, sel.w, sel.h);
-      ctx.strokeStyle = "#0ea5e9";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(sel.x, sel.y, sel.w, sel.h);
+        sel.x/cv.width*origImg.width, sel.y/cv.height*origImg.height,
+        sel.w/cv.width*origImg.width, sel.h/cv.height*origImg.height,
+        sel.x,sel.y,sel.w,sel.h);
+      ctx.strokeStyle="#0ea5e9"; ctx.lineWidth=2; ctx.strokeRect(sel.x,sel.y,sel.w,sel.h);
       document.getElementById("selInfo").textContent =
-        `✅ Selection active (${Math.round(sel.w)}×${Math.round(sel.h)}px on screen) — tap Scan Label`;
-    } else {
-      document.getElementById("selInfo").textContent =
-        origImg ? "Drag over the label to select it" : "Take a photo first";
+        `✅ Selection active (${Math.round(sel.w)}×${Math.round(sel.h)}px) — tap Scan Label`;
+    } else if (origImg) {
+      document.getElementById("selInfo").textContent = "Drag over the label to select it";
     }
   }
 
-  // ── Get canvas-relative coordinates ──────────────────────────────────────
   function getXY(e) {
-    dispRect = cv.getBoundingClientRect();
-    const src = e.touches ? e.touches[0] : e;
-    // Scale from CSS pixels to canvas pixels
-    const scaleX = cv.width  / dispRect.width;
-    const scaleY = cv.height / dispRect.height;
-    return {
-      x: (src.clientX - dispRect.left) * scaleX,
-      y: (src.clientY - dispRect.top)  * scaleY
-    };
+    const r = cv.getBoundingClientRect();
+    const s = e.touches ? e.touches[0] : e;
+    return { x:(s.clientX-r.left)*(cv.width/r.width), y:(s.clientY-r.top)*(cv.height/r.height) };
   }
+  function mkSel(a,b){return{x:Math.max(0,Math.min(a.x,b.x)),y:Math.max(0,Math.min(a.y,b.y)),w:Math.min(cv.width,Math.abs(b.x-a.x)),h:Math.min(cv.height,Math.abs(b.y-a.y))};}
+  function clearSel(){sel=null;redraw();}
 
-  // ── Mouse events (desktop) ────────────────────────────────────────────────
-  cv.addEventListener("mousedown", e => { if (!origImg) return; drag = getXY(e); e.preventDefault(); });
-  cv.addEventListener("mousemove", e => {
-    if (!drag) return;
-    const cur = getXY(e);
-    sel = mkSel(drag, cur); redraw(); e.preventDefault();
-  });
-  cv.addEventListener("mouseup", e => {
-    if (!drag) return;
-    const cur = getXY(e); sel = mkSel(drag, cur); drag = null; redraw(); e.preventDefault();
-  });
+  cv.addEventListener("mousedown",  e=>{if(!origImg)return;drag=getXY(e);e.preventDefault();});
+  cv.addEventListener("mousemove",  e=>{if(!drag)return;sel=mkSel(drag,getXY(e));redraw();e.preventDefault();});
+  cv.addEventListener("mouseup",    e=>{if(!drag)return;sel=mkSel(drag,getXY(e));drag=null;redraw();e.preventDefault();});
+  cv.addEventListener("touchstart", e=>{if(!origImg)return;drag=getXY(e);e.preventDefault();},{passive:false});
+  cv.addEventListener("touchmove",  e=>{if(!drag)return;sel=mkSel(drag,getXY(e));redraw();e.preventDefault();},{passive:false});
+  cv.addEventListener("touchend",   e=>{
+    if(!drag)return;
+    const t=e.changedTouches[0],r=cv.getBoundingClientRect();
+    sel=mkSel(drag,{x:(t.clientX-r.left)*(cv.width/r.width),y:(t.clientY-r.top)*(cv.height/r.height)});
+    drag=null;redraw();e.preventDefault();
+  },{passive:false});
 
-  // ── Touch events (mobile) ─────────────────────────────────────────────────
-  cv.addEventListener("touchstart", e => { if (!origImg) return; drag = getXY(e); e.preventDefault(); }, {passive:false});
-  cv.addEventListener("touchmove",  e => {
-    if (!drag) return;
-    const cur = getXY(e); sel = mkSel(drag, cur); redraw(); e.preventDefault();
-  }, {passive:false});
-  cv.addEventListener("touchend",   e => {
-    if (!drag) return;
-    const t = e.changedTouches[0];
-    dispRect = cv.getBoundingClientRect();
-    const scaleX = cv.width / dispRect.width, scaleY = cv.height / dispRect.height;
-    const cur = { x:(t.clientX-dispRect.left)*scaleX, y:(t.clientY-dispRect.top)*scaleY };
-    sel = mkSel(drag, cur); drag = null; redraw(); e.preventDefault();
-  }, {passive:false});
-
-  function mkSel(a, b) {
-    return {
-      x: Math.max(0, Math.min(a.x, b.x)),
-      y: Math.max(0, Math.min(a.y, b.y)),
-      w: Math.min(cv.width,  Math.abs(b.x - a.x)),
-      h: Math.min(cv.height, Math.abs(b.y - a.y))
-    };
-  }
-
-  function clearSel() { sel = null; redraw(); }
-
-  // ── Extract cropped region at full resolution ─────────────────────────────
+  // ── Extract crop ──────────────────────────────────────────────────────────
   function extractCrop() {
-    if (!sel || sel.w < 5 || sel.h < 5) return null;
-    // Map canvas coords → original image coords
-    const sx = sel.x / cv.width  * origImg.width;
-    const sy = sel.y / cv.height * origImg.height;
-    const sw = sel.w / cv.width  * origImg.width;
-    const sh = sel.h / cv.height * origImg.height;
-    // Scale up for OCR
-    const TARGET = 900;
-    const scale  = sw < TARGET ? TARGET / sw : 1;
-    const out = document.createElement("canvas");
-    out.width  = Math.round(sw * scale);
-    out.height = Math.round(sh * scale);
-    out.getContext("2d").drawImage(origImg, sx, sy, sw, sh, 0, 0, out.width, out.height);
+    if (!sel||sel.w<5||sel.h<5) return null;
+    const sx=sel.x/cv.width*origImg.width, sy=sel.y/cv.height*origImg.height;
+    const sw=sel.w/cv.width*origImg.width, sh=sel.h/cv.height*origImg.height;
+    const scale=Math.max(1,900/sw);
+    const out=document.createElement("canvas");
+    out.width=Math.round(sw*scale); out.height=Math.round(sh*scale);
+    out.getContext("2d").drawImage(origImg,sx,sy,sw,sh,0,0,out.width,out.height);
     return out;
+  }
+
+  // ── Preprocess ────────────────────────────────────────────────────────────
+  function preprocess(src) {
+    const c=document.createElement("canvas"); c.width=src.width; c.height=src.height;
+    const cx=c.getContext("2d"); cx.drawImage(src,0,0);
+    const id=cx.getImageData(0,0,c.width,c.height), d=id.data;
+    let total=0;
+    for(let i=0;i<d.length;i+=4) total+=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+    const thr=(total/(d.length/4))*0.65;
+    for(let i=0;i<d.length;i+=4){const g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];const v=g<thr?0:255;d[i]=d[i+1]=d[i+2]=v;d[i+3]=255;}
+    cx.putImageData(id,0,0); return c;
   }
 
   // ── Fuzzy match ───────────────────────────────────────────────────────────
   function lev(a,b){const m=a.length,n=b.length,dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);return dp[m][n];}
-  function fuzzyMatch(det,parts){if(parts.includes(det))return{match:det,exact:true};let best=null,dist=3;for(const p of parts){const d=lev(det,p);if(d<dist){dist=d;best=p;}}return best?{match:best,exact:false,dist}:null;}
 
-  // ── Preprocess crop for OCR ───────────────────────────────────────────────
-  // Grayscale + scale-up + threshold → clean black-on-white for Tesseract
-  function preprocessCrop(src) {
-    const SCALE = Math.max(1, 900 / src.width);
-    const w = Math.round(src.width * SCALE);
-    const h = Math.round(src.height * SCALE);
-    const c = document.createElement("canvas");
-    c.width = w; c.height = h;
-    const cx = c.getContext("2d");
-    cx.drawImage(src, 0, 0, w, h);
-    const id = cx.getImageData(0, 0, w, h);
-    const d  = id.data;
-    // Find average brightness to set dynamic threshold
-    let total = 0;
-    for (let i = 0; i < d.length; i += 4)
-      total += 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
-    const avg = total / (d.length / 4);
-    // Threshold = midpoint between darkest likely text and average background
-    const threshold = avg * 0.65;
-    for (let i = 0; i < d.length; i += 4) {
-      const g = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
-      const v = g < threshold ? 0 : 255;
-      d[i] = d[i+1] = d[i+2] = v; d[i+3] = 255;
-    }
-    cx.putImageData(id, 0, 0);
-    return c;
+  async function getApprovedParts() {
+    const catId = activeCatId;
+    try {
+      const url = catId ? `/parts?category_id=${catId}` : "/parts";
+      const r = await fetch(url);
+      return await r.json();
+    } catch { return []; }
+  }
+
+  function fuzzyMatch(det, parts) {
+    if (parts.includes(det)) return {match:det,exact:true};
+    let best=null,dist=3;
+    for(const p of parts){const d=lev(det,p);if(d<dist){dist=d;best=p;}}
+    return best?{match:best,exact:false,dist}:null;
   }
 
   // ── Scan ──────────────────────────────────────────────────────────────────
   async function scanImage() {
-    if (!origImg || !worker) return;
-
+    if (!origImg||!worker) return;
     const crop = extractCrop();
-    if (!crop) {
-      alert("Please drag over the label area first, then tap Scan Label.");
-      return;
-    }
+    if (!crop) { alert("Please drag over the label area first, then tap Scan Label."); return; }
 
     const badge = document.getElementById("badge");
-    document.getElementById("result").style.display = "block";
-    badge.className = "badge scanning"; badge.textContent = "Scanning…";
-    document.getElementById("progFill").style.width = "0";
-    document.getElementById("detected").textContent = "—";
-    document.getElementById("rawText").textContent = "";
-    document.getElementById("fuzzyNote").style.display = "none";
-    document.getElementById("btnScan").disabled = true;
+    document.getElementById("result").style.display="block";
+    badge.className="badge scanning"; badge.textContent="Scanning…";
+    document.getElementById("progFill").style.width="0";
+    document.getElementById("detected").textContent="—";
+    document.getElementById("rawText").textContent="";
+    document.getElementById("fuzzyNote").style.display="none";
+    document.getElementById("btnScan").disabled=true;
 
-    const processed = preprocessCrop(crop);
+    const processed = preprocess(crop);
 
     try {
-      // Try PSM 6 (block), 7 (single line), 11 (sparse) — pick longest result
-      let bestRaw = "", bestTokens = [];
-      for (const psm of ["6","7","11"]) {
-        await worker.setParameters({ tessedit_pageseg_mode: psm });
-        const {data} = await worker.recognize(processed);
-        const raw = data.text.trim();
-        const tokens = raw.toUpperCase().match(/[A-Z0-9][A-Z0-9_\-\.]{2,}/g) || [];
-        // Prefer result with more/longer tokens
-        const score = tokens.reduce((s,t) => s + t.length, 0);
-        const bestScore = bestTokens.reduce((s,t) => s + t.length, 0);
-        if (score > bestScore) { bestRaw = raw; bestTokens = tokens; }
+      let bestRaw="", bestTokens=[];
+      for(const psm of ["6","7","11"]){
+        await worker.setParameters({tessedit_pageseg_mode:psm});
+        const {data}=await worker.recognize(processed);
+        const raw=data.text.trim();
+        const tokens=raw.toUpperCase().match(/[A-Z0-9][A-Z0-9_\-\.]{2,}/g)||[];
+        const score=tokens.reduce((s,t)=>s+t.length,0);
+        if(score>bestTokens.reduce((s,t)=>s+t.length,0)){bestRaw=raw;bestTokens=tokens;}
       }
-      // Restore default
-      await worker.setParameters({ tessedit_pageseg_mode: "6" });
+      await worker.setParameters({tessedit_pageseg_mode:"6"});
 
-      const best = bestTokens.length
-        ? bestTokens.reduce((a,b) => b.length > a.length ? b : a)
-        : bestRaw.toUpperCase().trim();
+      const best=bestTokens.length?bestTokens.reduce((a,b)=>b.length>a.length?b:a):bestRaw.toUpperCase().trim();
+      document.getElementById("progFill").style.width="100%";
+      document.getElementById("rawText").textContent=bestRaw||"(nothing detected)";
+      document.getElementById("detected").textContent=best||"(nothing detected)";
 
-      document.getElementById("progFill").style.width = "100%";
-      document.getElementById("rawText").textContent  = bestRaw || "(nothing detected)";
-      document.getElementById("detected").textContent = best    || "(nothing detected)";
-
-      const match = fuzzyMatch(best, cachedParts);
-      if (match) {
+      const parts = await getApprovedParts();
+      const match = fuzzyMatch(best, parts);
+      if(match){
         badge.className="badge pass"; badge.textContent="✓ PASS";
-        if (!match.exact) {
-          const n = document.getElementById("fuzzyNote");
-          n.style.display="block";
-          n.textContent=`⚠ Fuzzy match: "${best}" → "${match.match}" (${match.dist} char diff)`;
-        }
+        if(!match.exact){const n=document.getElementById("fuzzyNote");n.style.display="block";n.textContent=`⚠ Fuzzy: "${best}" → "${match.match}" (${match.dist} diff)`;}
       } else {
         badge.className="badge fail"; badge.textContent="✗ FAIL";
       }
-    } catch(err) {
+    } catch(err){
       badge.className="badge fail"; badge.textContent="Error";
       document.getElementById("detected").textContent=err.message;
     }
-    document.getElementById("btnScan").disabled = false;
+    document.getElementById("btnScan").disabled=false;
   }
-
-  // ── Parts list ────────────────────────────────────────────────────────────
-  async function toggleParts(){const l=document.getElementById("partsList");if(l.style.display==="block"){l.style.display="none";return;}l.style.display="block";renderParts();}
-  function renderParts(){document.getElementById("partsUl").innerHTML=cachedParts.length?cachedParts.map(p=>`<li>${p}</li>`).join(""):"<li>No parts loaded</li>";}
-  async function addPart(){const inp=document.getElementById("newPart");const pn=inp.value.trim().toUpperCase();if(!pn)return;try{await fetch("/parts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({part_number:pn})});}catch{}if(!cachedParts.includes(pn)){cachedParts.push(pn);cachedParts.sort();}inp.value="";renderParts();}
-  document.getElementById("newPart").addEventListener("keydown",e=>{if(e.key==="Enter")addPart();});
 </script>
 </body>
 </html>
