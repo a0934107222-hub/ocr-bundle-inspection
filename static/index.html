@@ -67,6 +67,13 @@
     .add-row button{flex:0;padding:8px 12px;font-size:.82rem;background:#6366f1;color:#fff;border-radius:8px}
 
     .import-status{font-size:.73rem;color:#4ade80;margin-top:6px;display:none}
+    /* Override — section header buttons should NOT look like action buttons */
+    .section-head button, #toggleHistory, #toggleParts {
+      background:#1e293b !important; color:#94a3b8 !important;
+      padding:10px 14px !important; font-size:.83rem !important;
+      border-radius:10px !important;
+    }
+    #btnImport { background:#059669 !important; color:#fff !important; flex:0 !important; white-space:nowrap; }
 
     /* upload history */
     #uploadHistory{margin-top:14px;width:100%;max-width:480px}
@@ -406,16 +413,15 @@
     return out;
   }
 
-  // ── Preprocess ────────────────────────────────────────────────────────────
+  // ── Preprocess: grayscale + contrast boost, no threshold ─────────────────
+  // Threshold was turning white labels all-white. Simple contrast is safer.
   function preprocess(src) {
     const c=document.createElement("canvas"); c.width=src.width; c.height=src.height;
-    const cx=c.getContext("2d"); cx.drawImage(src,0,0);
-    const id=cx.getImageData(0,0,c.width,c.height), d=id.data;
-    let total=0;
-    for(let i=0;i<d.length;i+=4) total+=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
-    const thr=(total/(d.length/4))*0.65;
-    for(let i=0;i<d.length;i+=4){const g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];const v=g<thr?0:255;d[i]=d[i+1]=d[i+2]=v;d[i+3]=255;}
-    cx.putImageData(id,0,0); return c;
+    const cx=c.getContext("2d");
+    // Boost contrast via CSS filter before reading pixels
+    cx.filter="contrast(1.8) grayscale(1)";
+    cx.drawImage(src,0,0);
+    return c;
   }
 
   // ── Fuzzy match ───────────────────────────────────────────────────────────
