@@ -280,6 +280,8 @@
     document.querySelector(".sub").textContent = active
       ? `File: ${active.filename} — take photo → drag label → Scan`
       : "Select uploaded file → take photo → drag label → Scan";
+    // Keep history panel in sync if it's open
+    if (document.getElementById("historyList").style.display === "block") renderHistory();
   }
 
   // ── Categories (for parts management panel only) ──────────────────────────
