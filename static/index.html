@@ -26,14 +26,21 @@
     .btn-row{display:flex;gap:7px;margin-top:10px;width:100%;max-width:480px;flex-wrap:wrap}
     button{border:none;border-radius:11px;font-size:.88rem;font-weight:600;cursor:pointer;transition:opacity .15s;}
     button:active{opacity:.75}
+
     /* ── sticky action bar ── */
-    #actionBar{position:fixed;bottom:0;left:0;right:0;display:flex;gap:8px;padding:10px 16px 20px;background:#0f172a;border-top:1px solid #1e293b;z-index:100}
-    #btnCamera{flex:1;padding:13px;background:#6366f1;color:#fff}
-    #btnClear{flex:0;padding:13px 14px;background:#334155;color:#94a3b8}
-    #btnScan{flex:1;padding:13px;background:#0ea5e9;color:#fff}
+    #actionBar{position:fixed;bottom:0;left:0;right:0;display:flex;gap:6px;padding:10px 12px 20px;background:#0f172a;border-top:1px solid #1e293b;z-index:100}
+    #btnCamera{flex:1;padding:13px 8px;background:#6366f1;color:#fff;font-size:.82rem}
+    #btnRotate{flex:0;padding:13px 12px;background:#334155;color:#fbbf24;font-size:1rem}
+    #btnRotate:disabled{color:#475569;cursor:default}
+    #btnClear{flex:0;padding:13px 12px;background:#334155;color:#94a3b8}
+    #btnScan{flex:1;padding:13px 8px;background:#0ea5e9;color:#fff;font-size:.82rem}
     #btnScan:disabled{background:#1e3a4a;color:#475569;cursor:default}
     /* bottom padding so content isn't hidden behind bar */
     body{padding-bottom:90px !important}
+
+    /* restore banner */
+    #restoreBanner{display:none;width:100%;max-width:480px;background:#1e3a5f;border:1px solid #0ea5e9;border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:.78rem;color:#7dd3fc}
+    #restoreBanner b{color:#f8fafc}
 
     /* result */
     #result{margin-top:12px;width:100%;max-width:480px;background:#1e293b;border-radius:14px;padding:16px;display:none}
@@ -99,6 +106,9 @@
   <h1>🔍 Bundle Inspection OCR</h1>
   <p class="sub">Select category → take photo → drag label → Scan</p>
 
+  <!-- Restore banner (shown when auto-restoring from local backup) -->
+  <div id="restoreBanner"></div>
+
   <!-- File selector -->
   <div class="cat-bar">
     <label>File:</label>
@@ -159,6 +169,7 @@
   <!-- Fixed action bar at bottom -->
   <div id="actionBar">
     <button id="btnCamera" onclick="document.getElementById('fileInput').click()">📷 Camera</button>
+    <button id="btnRotate" disabled onclick="rotateImage()" title="Rotate 90°">↺</button>
     <button id="btnClear" onclick="clearSel()">✕</button>
     <button id="btnScan" disabled onclick="scanImage()">Scan Label</button>
   </div>
@@ -167,17 +178,26 @@
   // ── State ─────────────────────────────────────────────────────────────────
   const cv  = document.getElementById("canvas");
   const ctx = cv.getContext("2d");
-  let origImg = null, sel = null, drag = null;
-  let worker  = null;
-  let categories = [];   // [{id, name}] — for parts panel
-  let uploads    = [];   // [{id, filename, ...}] — for file dropdown
-  let activeCatId  = "";   // selected category id (parts panel)
+  let origImg    = null;   // current (possibly rotated) Image element used for display & crop
+  let imgDataUrl = null;   // original file data URL (never mutated — used to re-apply rotation)
+  let rotation   = 0;      // 0 | 90 | 180 | 270
+  let sel  = null;
+  let drag = null;
+  let worker = null;
+  let categories   = [];   // [{id, name}] — for parts panel
+  let uploads      = [];   // [{id, filename, ...}] — for file dropdown
+  let activeCatId    = ""; // selected category id (parts panel)
   let activeUploadId = ""; // selected upload/file id (scan validation)
+
+  // ── LocalStorage backup key ───────────────────────────────────────────────
+  const LS_KEY = "ocr_excel_backups_v2";
 
   // ── Init ──────────────────────────────────────────────────────────────────
   async function init() {
     drawPlaceholder();
     await loadUploads();
+    // If server lost its DB (Render restart), auto-restore from device backup
+    if (uploads.length === 0) await restoreFromLocal();
     await loadCategories();
     worker = await Tesseract.createWorker("eng", 1, {
       logger: m => {
@@ -193,6 +213,41 @@
     ctx.fillStyle = "#1e293b"; ctx.fillRect(0,0,cv.width,cv.height);
     ctx.fillStyle = "#475569"; ctx.font = "15px sans-serif"; ctx.textAlign = "center";
     ctx.fillText("Tap 📷 Camera to take a photo", cv.width/2, cv.height/2);
+  }
+
+  // ── localStorage backup / restore ─────────────────────────────────────────
+  function getLocalBackups() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }
+    catch { return []; }
+  }
+  function saveLocalBackups(arr) {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(arr)); } catch {}
+  }
+
+  async function restoreFromLocal() {
+    const backups = getLocalBackups();
+    if (!backups.length) return;
+    const banner = document.getElementById("restoreBanner");
+    banner.style.display = "block";
+    banner.innerHTML = `⏳ Server restarted — restoring <b>${backups.length}</b> file(s) from your device…`;
+    let restored = 0;
+    for (const b of backups) {
+      try {
+        // data URL → Blob → File
+        const res  = await fetch(b.data);
+        const blob = await res.blob();
+        const file = new File([blob], b.filename, { type: blob.type });
+        const form = new FormData();
+        form.append("file", file);
+        const r = await fetch("/upload-excel", { method:"POST", body: form });
+        if (r.ok) restored++;
+      } catch {}
+    }
+    await loadUploads();
+    banner.innerHTML = restored
+      ? `✅ Restored <b>${restored}</b> file(s) from your device backup automatically.`
+      : `⚠️ Could not restore files — try re-importing manually.`;
+    setTimeout(() => { banner.style.display = "none"; }, 5000);
   }
 
   // ── Uploads dropdown (file selector for scanning) ─────────────────────────
@@ -213,7 +268,6 @@
       activeUploadId = String(uploads[0].id);
       sel.value = activeUploadId;
     }
-    // Update subtitle
     const active = uploads.find(u => String(u.id) === String(activeUploadId));
     document.querySelector(".sub").textContent = active
       ? `File: ${active.filename} — take photo → drag label → Scan`
@@ -244,7 +298,6 @@
     if (!name) return;
     await fetch("/categories", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({name}) });
     await loadCategories();
-    // select the new one in panel
     const found = categories.find(c => c.name === name.trim());
     if (found) { document.getElementById("panelCatSel").value = found.id; loadPanelParts(); }
   }
@@ -299,6 +352,14 @@
   // ── Excel import ──────────────────────────────────────────────────────────
   document.getElementById("xlsInput").addEventListener("change", async e => {
     const file = e.target.files[0]; if (!file) return;
+
+    // Read file as data URL for localStorage backup BEFORE upload
+    const fileDataUrl = await new Promise(res => {
+      const fr = new FileReader();
+      fr.onload = ev => res(ev.target.result);
+      fr.readAsDataURL(file);
+    });
+
     const form = new FormData(); form.append("file", file);
     const status = document.getElementById("importStatus");
     status.style.display = "block"; status.style.color = "#7dd3fc";
@@ -309,6 +370,13 @@
       status.style.color = "#4ade80";
       status.textContent = `✅ Imported ${data.imported} part numbers`;
       if (data.errors?.length) status.textContent += ` (${data.errors.length} skipped)`;
+
+      // ── Save to localStorage backup ───────────────────────────────────────
+      const backups = getLocalBackups().filter(b => b.filename !== file.name);
+      backups.push({ filename: file.name, data: fileDataUrl, saved_at: new Date().toISOString() });
+      saveLocalBackups(backups);
+      // ─────────────────────────────────────────────────────────────────────
+
       await loadUploads();
       await loadCategories();
       await loadPanelParts();
@@ -367,6 +435,14 @@
     if (!confirm("Delete this file and all its parts?")) return;
     await fetch(`/uploads/${uploadId}`, { method:"DELETE" });
     if (String(activeUploadId) === String(uploadId)) { activeUploadId = ""; }
+
+    // Also remove from localStorage backup
+    const u = uploads.find(x => String(x.id) === String(uploadId));
+    if (u) {
+      const backups = getLocalBackups().filter(b => b.filename !== u.filename);
+      saveLocalBackups(backups);
+    }
+
     await loadUploads();
     await loadCategories();
     renderHistory();
@@ -377,21 +453,59 @@
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = ev => {
-      const img = new Image();
-      img.onload = () => {
-        origImg = img; sel = null;
-        const maxW = cv.offsetWidth || 480;
-        const scale = maxW / img.width;
-        cv.width = img.width * scale; cv.height = img.height * scale;
-        redraw();
-        document.getElementById("btnScan").disabled = false;
+      imgDataUrl = ev.target.result;
+      rotation   = 0;
+      loadImageFromDataUrl(imgDataUrl, () => {
+        document.getElementById("btnScan").disabled   = false;
+        document.getElementById("btnRotate").disabled = false;
         document.getElementById("result").style.display = "none";
         document.getElementById("selInfo").textContent = "Drag over the label to select it";
-      };
-      img.src = ev.target.result;
+      });
     };
     reader.readAsDataURL(file);
+    e.target.value = "";
   });
+
+  function loadImageFromDataUrl(dataUrl, onDone) {
+    const img = new Image();
+    img.onload = () => {
+      origImg = img; sel = null;
+      const maxW  = cv.offsetWidth || 480;
+      const scale = maxW / img.width;
+      cv.width  = img.width  * scale;
+      cv.height = img.height * scale;
+      redraw();
+      if (onDone) onDone();
+    };
+    img.src = dataUrl;
+  }
+
+  // ── Rotate ────────────────────────────────────────────────────────────────
+  function rotateImage() {
+    if (!imgDataUrl) return;
+    rotation = (rotation + 90) % 360;
+    applyRotation();
+  }
+
+  function applyRotation() {
+    const img = new Image();
+    img.onload = () => {
+      const swap = rotation === 90 || rotation === 270;
+      const tmp  = document.createElement("canvas");
+      tmp.width  = swap ? img.height : img.width;
+      tmp.height = swap ? img.width  : img.height;
+      const tctx = tmp.getContext("2d");
+      tctx.translate(tmp.width / 2, tmp.height / 2);
+      tctx.rotate(rotation * Math.PI / 180);
+      tctx.drawImage(img, -img.width / 2, -img.height / 2);
+      // Convert rotated canvas back to Image so existing crop logic works unchanged
+      loadImageFromDataUrl(tmp.toDataURL("image/jpeg", 0.92), () => {
+        document.getElementById("selInfo").textContent =
+          `↺ Rotated ${rotation}° — drag over the label to select it`;
+      });
+    };
+    img.src = imgDataUrl;
+  }
 
   // ── Canvas draw ───────────────────────────────────────────────────────────
   function redraw() {
@@ -432,6 +546,7 @@
   },{passive:false});
 
   // ── Extract crop ──────────────────────────────────────────────────────────
+  // origImg is always the already-rotated image, so no extra coordinate math needed.
   function extractCrop() {
     if (!sel||sel.w<5||sel.h<5) return null;
     const sx=sel.x/cv.width*origImg.width, sy=sel.y/cv.height*origImg.height;
@@ -443,9 +558,6 @@
     return out;
   }
 
-  // ── Preprocess: just return the crop as-is ───────────────────────────────
-  // Tesseract.js handles contrast internally. Don't transform — any
-  // transform risk making the image unreadable on mobile browsers.
   function preprocess(src) { return src; }
 
   // ── Fuzzy match ───────────────────────────────────────────────────────────
@@ -455,13 +567,12 @@
     try {
       const url = activeUploadId ? `/parts?upload_id=${activeUploadId}` : "/parts";
       const r = await fetch(url);
-      return await r.json(); // [{label_text, part_number}, ...]
+      return await r.json();
     } catch { return []; }
   }
 
   function fuzzyMatch(det, parts) {
-    // Exact match only — any mismatch = FAIL
-    // Part numbers like X10 vs X12 must not be confused in factory inspection
+    // Exact match only — X10 vs X12 must FAIL
     const exact = parts.find(p => p.label_text === det);
     if (exact) return {match: exact.label_text, part_number: exact.part_number, exact: true};
     return null;
@@ -508,7 +619,6 @@
         document.getElementById("detected").textContent = match.part_number || best;
       } else {
         badge.className="badge fail"; badge.textContent="✗ FAIL";
-        // Show closest label for debugging (but it's still a FAIL)
         const closest = parts.reduce((a,p) => {
           const d=lev(best,p.label_text); return d<a.dist?{p,dist:d}:a;
         }, {p:null,dist:999});
